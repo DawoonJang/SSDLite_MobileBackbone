@@ -2,5 +2,5 @@
 Tensorflow2 and Keras implementation of MobileNetV3 and MobileDet SSD Lite
 
 ## Inference Examples
-<img width="95%" src="https://user-images.githubusercontent.com/89026839/173187346-34863172-4ace-4e68-a3a4-60f6d24ba6a7.png"/>
-<img width="95%" src="https://user-images.githubusercontent.com/89026839/173187428-1a0713d9-d9b1-4e51-aad1-fcfcac6ce0ab.png"/>
+<img width="95%" src="https://user-images.githubusercontent.com/89026839/173187633-05a4711c-7d6b-4352-a217-234fabb5691d.jpg"/>
+<img width="95%" src="https://user-images.githubusercontent.com/89026839/173187669-3a385015-9412-4db7-8f4d-4e2ed1be0480.jpg"/>
