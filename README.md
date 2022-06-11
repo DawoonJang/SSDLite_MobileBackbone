@@ -7,9 +7,9 @@ Tensorflow2 and Keras implementation of MobileNetV3 and MobileDet SSD Lite
 
 ## Reference
 ### Ref
-1.Searching for MobileNetV3 https://arxiv.org/abs/1905.02244
+1. Searching for MobileNetV3 https://arxiv.org/abs/1905.02244
 
-2.MobileDets: Searching for Object Detection Architectures for Mobile Accelerators https://arxiv.org/abs/2004.14525
+2. MobileDets: Searching for Object Detection Architectures for Mobile Accelerators https://arxiv.org/abs/2004.14525
 
 ### Code Ref
-TFOD https://github.com/tensorflow/tensorflow
+1. TFOD https://github.com/tensorflow/tensorflow
