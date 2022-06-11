@@ -108,7 +108,6 @@ class Logger(tf.keras.callbacks.Callback):
                 tf.summary.scalar(name="BoxL", data=logs["BoxL"], step=epoch)
                 tf.summary.scalar(name="TotalL", data=logs["TotalL"], step=epoch)
                 tf.summary.scalar(name="RegL", data=logs["RegL"], step=epoch)
-                tf.summary.scalar(name="Pbox", data=logs["Pbox"], step=epoch)
 
             with tf.name_scope('LearningRate'):
                 tf.summary.scalar(name="LearngingRate", data=self.model.optimizer.lr, step=epoch)
@@ -124,7 +123,6 @@ class Logger(tf.keras.callbacks.Callback):
                 tf.summary.scalar(name="ClassL", data=logs["val_ClassL"], step=epoch)
                 tf.summary.scalar(name="BoxL", data=logs["val_BoxL"], step=epoch)
                 tf.summary.scalar(name="TotalL", data=logs["val_TotalL"], step=epoch)
-                tf.summary.scalar(name="Pbox", data=logs["val_Pbox"], step=epoch)
 
         self._train_summary.flush()
         self._valid_summary.flush()
