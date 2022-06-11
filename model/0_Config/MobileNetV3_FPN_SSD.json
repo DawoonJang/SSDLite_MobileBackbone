@@ -1,0 +1,63 @@
+{
+    "model_config":
+    {
+        "target_size": 320,
+        "feature_map_shapes": [40, 20, 10, 5, 3],
+        "box_variances": [0.1, 0.1, 0.2, 0.2],
+        "AnchorSpecs":[
+            [[0.1, 1.0], [0.1, 2.00], [0.1, 0.5], [false, null]],
+            [[0.2, 1.0], [0.2, 2.00], [0.2, 0.5], [false, null]],
+            [[0.4, 1.0], [0.4, 2.00], [0.4, 0.5], [0.27, 1.0], [0.27, 2.00], [0.27, 0.5], [false, null]],
+            [[0.8, 1.0], [0.8, 2.00], [0.8, 0.5], [0.53, 1.0], [0.53, 2.00], [0.53, 0.5], [false, null]],
+            [[1.6, 1.0], [1.6, 2.00], [1.6, 0.5], [1.06, 1.0], [1.06, 2.00], [1.06, 0.5], [false, null]]
+
+        ],
+        "numAnchors": [3, 3, 6, 6, 6],
+
+        "backbone":
+        {
+            "name":"MobileNetV3",
+            "width_multiplier": 1.0,
+            "modelSize":"small",
+            "regularization":0.0,
+            "dropout":0.00,
+            "isFreeze":true
+        },
+        "neck":
+        {   "name":"FPN",
+            "isLite": true,
+            "filters": 128,
+            "regularization":1e-5,
+            "isFreeze":false
+        },
+        "head":
+        {
+            "name": "SSD",
+            "isLite": true,
+            "regularization":1e-5,
+            "isFreeze":false
+        } 
+    },
+
+    "training_config":
+    {
+        "ClfLoss": 
+        {
+            "LossFunction": "Focal",
+            "Alpha" : 0.75,
+            "Gamma" : 2.0,
+            "Weight" : 1.0
+        },
+
+        "BoxLoss": 
+        {
+            "LossFunction": "SmoothL1",
+            "Delta": 1.0,
+            "Weight" : 1.0
+        },
+        "batch_size": 128,
+        "num_classes": 80,
+        "epochs": 200,
+        "initial_learning_rate": 1e-2
+    }
+}
