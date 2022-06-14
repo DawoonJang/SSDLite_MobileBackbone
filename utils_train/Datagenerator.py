@@ -75,6 +75,7 @@ class LabelEncoder():
         self._anchor_box = AnchorBox(config).get_anchors()
         self._box_variance = tf.convert_to_tensor(config['model_config']['box_variances'], dtype=tf.float32)
         self._mode = config['training_config']['BoxLoss']['LossFunction'].lower()
+        self._num_classes = config['training_config']["num_classes"]
 
     def _match_anchor_boxes(self, gt_boxes, match_iou=0.5, ignore_iou=0.5):
         cost_matrix = CalculateIOU(self._anchor_box, gt_boxes)
@@ -87,7 +88,8 @@ class LabelEncoder():
         return (
             matched_gt_idx,
             positive_mask,
-            ignore_mask
+            ignore_mask, 
+            max_iou
         )
 
     def _compute_box_target(self, matched_gt_boxes):
@@ -102,7 +104,7 @@ class LabelEncoder():
 
     def _encode_sample(self, gt_boxes, cls_ids):
         cls_ids = tf.cast(cls_ids, dtype=tf.float32)
-        matched_gt_idx, positive_mask, ignore_mask = self._match_anchor_boxes(gt_boxes)
+        matched_gt_idx, positive_mask, ignore_mask, max_iou = self._match_anchor_boxes(gt_boxes)
 
         matched_gt_boxes = tf.gather(gt_boxes, matched_gt_idx)
         matched_gt_cls_ids = tf.gather(cls_ids, matched_gt_idx) 
@@ -114,7 +116,7 @@ class LabelEncoder():
         cls_target = tf.where(ignore_mask, -2.0, cls_target)
         cls_target = tf.expand_dims(cls_target, axis=-1)
         
-        label = tf.concat([box_target, cls_target], axis=-1)
+        label = tf.concat([box_target, cls_target, tf.expand_dims(max_iou, -1)], axis=-1)
         return label
     
 class DatasetBuilder():
@@ -130,10 +132,10 @@ class DatasetBuilder():
         
         if mode == 'train' or mode == 'bboxtest':
              [self._tfrecords], dataset_info = tfds.load(name="coco/2017", split=["train"], with_info=True, shuffle_files=True)
+             self.labelMapFunc = dataset_info.features["objects"]["label"].int2str
         else:
-             [self._tfrecords], dataset_info = tfds.load(name="coco/2017", split=["validation"], with_info=True, shuffle_files=False)
+             [self._tfrecords] = tfds.load(name="coco/2017", split=["validation"], with_info=False, shuffle_files=False)
 
-        self.labelMapFunc = dataset_info.features["objects"]["label"].int2str
         self._build_dataset()
     
     def _preprocess(self, samples):
@@ -190,11 +192,9 @@ class DatasetBuilder():
         self._tfrecords = self._tfrecords.filter(lambda samples: len(samples["objects"]["label"]) >= 1) #117266 #4952  and tf.reduce_any(samples["objects"]["label"] == 0)
         
         if self.mode == 'train':
-            options = tf.data.Options()
-            options.deterministic = False
             self._dataset = (
-                self._tfrecords.with_options(options)
-                .shuffle(16*self._batch_size, reshuffle_each_iteration=True)
+                self._tfrecords#.with_options(options)
+                .shuffle(16*self._batch_size, reshuffle_each_iteration=False)
                 .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = True)
                 .prefetch(tf.data.AUTOTUNE)

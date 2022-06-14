@@ -6,7 +6,7 @@ import tensorboard
 from model.ModelBuilder import ModelBuilder
 from utils_train.customLoss import MultiBoxLoss
 from utils_train.customCallback import CallbackBuilder
-from utils_train.customOptimizer import GCSGD, Lookahead, RectifiedAdam, AdamW
+from utils_train.customOptimizer import GCSGD
 from utils_train.Datagenerator import DatasetBuilder
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -19,7 +19,7 @@ if __name__ =="__main__":
     #tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
     
     ######################################### MODEL
-    modelName = "MobileNetV3_PFH_SSD"
+    modelName = "MobileDet_PFH_SSD"
     #modelName = "MobileViT_PFH_SSD"
 
     model_dir = "checkpoints/"

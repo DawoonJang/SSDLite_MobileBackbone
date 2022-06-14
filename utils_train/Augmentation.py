@@ -99,11 +99,11 @@ def randomCrop(image, bbox, class_id, p = 1.0):
         return boxlist_new
     image_shape = tf.shape(image)
 
-    boxes_expanded = tf.expand_dims(tf.clip_by_value(bbox, clip_value_min=0.0, clip_value_max=1.0), 1) # boxes are [N, 4]. Lets first make them [N, 1, 4].
+    boxes_expanded = tf.expand_dims(bbox, 1) # boxes are [N, 4]. Lets first make them [N, 1, 4].
     
     im_box_begin, im_box_size, im_box = tf.image.sample_distorted_bounding_box(image_shape,
                                                             bounding_boxes=boxes_expanded,
-                                                            min_object_covered=random.choice([0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]), #rand
+                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9, 1.0]), #rand
                                                             aspect_ratio_range=[0.5, 2.0], #rand
                                                             area_range=[0.1, 1], #rand
                                                             max_attempts=100,
