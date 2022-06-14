@@ -54,5 +54,8 @@ def SSD(x, config=None):
                                         **box_config_dict))
         
 
-    return {"BoxPred": tf.keras.layers.Concatenate(axis=-2, name="BoxConcat")(box_outputs),
-            "ClfPred": tf.keras.layers.Concatenate(axis=-2, name="ClfConcat")(clf_outputs)}
+    box_outputs = tf.keras.layers.Concatenate(axis=-2, name="BoxConcat")(box_outputs)
+    clf_outputs = tf.keras.layers.Concatenate(axis=-2, name="ClfConcat")(clf_outputs)
+    output = tf.keras.layers.Concatenate(axis=-1, name="FinalConcat")([box_outputs, clf_outputs])
+    return tf.keras.layers.Activation('linear', dtype='float32', name="output_layer")(output)
+            

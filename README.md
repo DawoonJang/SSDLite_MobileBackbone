@@ -2,7 +2,7 @@
 Tensorflow2 and Keras implementation of MobileNetV3 and MobileDet SSD Lite
 
 ## Update
-1. [22/06/14] Update: Quality Focal Loss
+1. [22/06/14] Update: Quality Focal Loss and mixed precision training
 
 ## Inference Examples
 <img width="50%" src="https://user-images.githubusercontent.com/89026839/173187633-05a4711c-7d6b-4352-a217-234fabb5691d.jpg"/>

@@ -103,7 +103,7 @@ def randomCrop(image, bbox, class_id, p = 1.0):
     
     im_box_begin, im_box_size, im_box = tf.image.sample_distorted_bounding_box(image_shape,
                                                             bounding_boxes=boxes_expanded,
-                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9, 1.0]), #rand
+                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9]), #rand
                                                             aspect_ratio_range=[0.5, 2.0], #rand
                                                             area_range=[0.1, 1], #rand
                                                             max_attempts=100,
@@ -139,6 +139,16 @@ def colorJitter(image, p = 1.0):
     if tf.random.uniform([], minval=0, maxval=1) < p:
         image = tf.tile(tf.image.rgb_to_grayscale(image), [1,1,3])
     return image
+
+
+def mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_two):
+    def _sample_beta_distribution(size, concentration_0=0.5, concentration_1=0.5):
+        gamma_1_sample = tf.random.gamma(shape=[size], alpha=concentration_1)
+        gamma_2_sample = tf.random.gamma(shape=[size], alpha=concentration_0)
+        return gamma_1_sample / (gamma_1_sample + gamma_2_sample)
+
+    images = images_one * 0.5 + images_two * (1 - 0.5)
+    return images, tf.concat([bboxes_one, bboxes_two], 1), tf.concat([classes_one, classes_two], 1)
 
 
 def randomExpand(image, bbox, expandMax=1.5, p = 1.0):

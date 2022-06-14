@@ -120,7 +120,7 @@ def _SeparableConv(inputs, filters, kernel_size=3, strides=2, padding='same', us
             padding=padding,
             use_bias=use_bias,
             depthwise_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-            depthwise_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
+            #depthwise_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
             pointwise_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
             pointwise_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
             trainable=conf_dict['trainable'],
@@ -136,13 +136,12 @@ def _SeparableConv(inputs, filters, kernel_size=3, strides=2, padding='same', us
     return x
 
 def _SeparableDepthwiseConv(inputs, filters, kernel_size=3, strides=2, padding='same', use_bias=False, normalization=BatchNormalization, activation=ReLU6, prefix=None, **conf_dict):
-
     x=DepthwiseConv2D(kernel_size=kernel_size,
                     strides=strides,
                     padding=padding,
                     use_bias=False,
                     kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                    kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
+                    #kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
                     bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
                     trainable=conf_dict['trainable'],
                     name=prefix+'DepthwiseConv')(inputs)
@@ -253,8 +252,6 @@ def _IBN(x, expansion, filters, kernel_size=3, strides=1, dilation_rate=1, activ
         else:
             return x
 
-    
-
 def _Fused(x, expansion, filters, kernel_size=3, strides=1, activation=ReLU6, attentionMode="_SEBlock", block_id=0, Residual=True, **conf_dict):
     """Fused convolution layer."""
     shortcut=x
@@ -284,7 +281,6 @@ def _Fused(x, expansion, filters, kernel_size=3, strides=1, activation=ReLU6, at
         return x + shortcut
     else:
         return x
-
 
 def _Tucker(x,
             input_rank_ratio=0.25,

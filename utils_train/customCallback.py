@@ -112,7 +112,7 @@ class Logger(tf.keras.callbacks.Callback):
             with tf.name_scope('LearningRate'):
                 tf.summary.scalar(name="LearngingRate", data=self.model.optimizer.lr, step=epoch)
 
-            with tf.summary.record_if(epoch % 10 == 0):
+            with tf.summary.record_if(epoch % self._eval_interval == 0):
                 for layer in self.model.layers:
                     for weight in layer.weights:
                         weight_name = weight.name.replace(':', '_')

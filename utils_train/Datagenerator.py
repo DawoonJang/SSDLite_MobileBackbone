@@ -115,10 +115,19 @@ class LabelEncoder():
         cls_target = tf.where(positive_mask, matched_gt_cls_ids, -1.0)
         cls_target = tf.where(ignore_mask, -2.0, cls_target)
         cls_target = tf.expand_dims(cls_target, axis=-1)
-        
+
         label = tf.concat([box_target, cls_target, tf.expand_dims(max_iou, -1)], axis=-1)
         return label
-    
+
+    def _encode_batch(self, gt_boxes, cls_ids):
+        batch_size = tf.shape(gt_boxes)[0]
+
+        labels = tf.TensorArray(dtype=tf.float32, size=batch_size, dynamic_size=True)
+        for i in range(batch_size):
+            label = self._encode_sample(gt_boxes[i], cls_ids[i])
+            labels = labels.write(i, label)
+        return labels.stack()
+
 class DatasetBuilder():
     def __init__(self, config, mode='train'):
         assert(mode in ['train', 'validation', 'bboxtest'])
@@ -164,10 +173,9 @@ class DatasetBuilder():
 
         if self.mode == 'train' or self.mode == 'bboxtest':
             image, bbox, classes  = randomCrop(image, bbox, classes, p = 0.9)
-            image, bbox           = randomExpand(image, bbox, expandMax = 0.3, p = 0.2)
             image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
             image, bbox           = flipHorizontal(image, bbox, p = 0.5)
-            #image                 = colorJitter(image, p = 0.3)
+            image                 = colorJitter(image, p = 0.3)
         else:
             image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
 
@@ -181,9 +189,8 @@ class DatasetBuilder():
                 classes = -1*tf.ones([1], tf.int32)
         
         cocoLabel = {"original_shape": originalShape, "image_id": samples['image/id']}
-        if self.mode == 'bboxtest':
-            return image, bbox, classes
-        elif self.mode == 'train':
+
+        if self.mode == 'train':
             return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes)
         else:
             return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes), cocoLabel
@@ -218,7 +225,7 @@ class DatasetBuilder():
         return self._dataset
 
 
-
+'''
 class DatasetBuilder_custom():
     def __init__(self,  config, mode='train'):
         assert(mode in ['train', 'valid', 'bboxtest']) #'invalid'
@@ -234,10 +241,10 @@ class DatasetBuilder_custom():
         self._build_dataset()
     
     def _preprocess(self, samples):
-        '''
-            in_bbox_format: [ymin xmin ymax xmax]
-            out_bbox_format: [cy cx h w]
-        '''
+        
+            #in_bbox_format: [ymin xmin ymax xmax]
+            #out_bbox_format: [cy cx h w]
+        
         ###################################################
         feature_description = {
             'image/encoded': tf.io.FixedLenFeature([], tf.string),
@@ -314,6 +321,133 @@ class DatasetBuilder_custom():
                                             num_parallel_calls=tf.data.AUTOTUNE)
                 .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
             )
+    @property
+    def dataset(self):
+        return self._dataset
+    '''
+class DatasetBuilder_temp():
+    def __init__(self, config, mode='train'):
+        assert(mode in ['train', 'validation', 'bboxtest'])
+        self._dataset = None
+
+        self._label_encoder = LabelEncoder(config)
+        self._target_size = config["model_config"]["target_size"]
+        self._batch_size = config["training_config"]["batch_size"]
+
+        self.mode = mode
+        
+        if mode == 'train' or mode == 'bboxtest':
+             [self._tfrecords], dataset_info = tfds.load(name="coco/2017", split=["train"], with_info=True, shuffle_files=True)
+             self.labelMapFunc = dataset_info.features["objects"]["label"].int2str
+        else:
+             [self._tfrecords] = tfds.load(name="coco/2017", split=["validation"], with_info=False, shuffle_files=False)
+
+        self._build_dataset()
+    
+    def _preprocess_before_batch(self, samples):
+        '''
+            in_bbox_format: [ymin xmin ymax xmax]
+            out_bbox_format: [cy cx h w]
+        '''
+
+        image = samples["image"]
+        originalShape = tf.shape(image)[:2]
+        classes = tf.cast(samples["objects"]["label"], dtype=tf.int32)
+        bbox = samples["objects"]["bbox"]
+        ####################################
+        noCrowMask =  tf.logical_not(samples["objects"]["is_crowd"])
+        classes = tf.boolean_mask(classes, noCrowMask)
+        bbox = tf.boolean_mask(bbox, noCrowMask)
+        ####################################
+        validboxMask = tf.reduce_all(bbox[..., 2:] > bbox[..., :2], -1)
+        classes = tf.boolean_mask(classes, validboxMask)
+        bbox = tf.boolean_mask(bbox, validboxMask)
+        bbox = tf.clip_by_value(bbox, 0.0, 1.0)
+        ####################################
+        #humanMask = tf.equal(classes, 0)
+        #classes = tf.boolean_mask(classes, humanMask)
+        #bbox = tf.boolean_mask(bbox, humanMask)
+        ####################################
+
+        if self.mode == 'train' or self.mode == 'bboxtest':
+            image, bbox, classes  = randomCrop(image, bbox, classes, p = 0.9)
+            image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 1.0)
+            image, bbox           = flipHorizontal(image, bbox, p = 0.5)
+            image                 = colorJitter(image, p = 0.3)
+        else:
+            image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
+
+        if self.mode == 'train' or self.mode == 'validation':
+            if len(bbox) > 0:
+                bbox = tf.concat([
+                    (bbox[..., :2]+bbox[..., 2:])/2.0,
+                    (bbox[..., 2:]-bbox[..., :2])],axis=-1)
+            else:
+                bbox = tf.zeros([1, 4], tf.float32)
+                classes = -1*tf.ones([1], tf.int32)
+        
+        cocoLabel = {"original_shape": originalShape, "image_id": samples['image/id']}
+
+        if self.mode == 'train':
+            return (image/127.5) -1.0, bbox, classes, originalShape
+        else:
+            return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes), cocoLabel
+
+    def _preprocess_after_batch(self, ds_one, ds_two):
+        images_one, bboxes_one, classes_one, original_shape_one = ds_one
+        images_two, bboxes_two, classes_two, original_shape_two = ds_two
+        batch_size = tf.shape(images_one)[0]
+
+        if tf.random.uniform([], minval=0, maxval=1) < 0.5:
+            inds_one = tf.argsort(tf.cast(original_shape_one[..., 0]/original_shape_one[..., 1], tf.float64))
+            inds_two = tf.argsort(-tf.cast(original_shape_two[..., 0]/original_shape_two[..., 1], tf.float64))
+
+            images_one = tf.gather(images_one, inds_one, axis=0)
+            bboxes_one = tf.gather(bboxes_one, inds_one, axis=0)
+            classes_one = tf.gather(classes_one, inds_one, axis=0)
+
+            images_two = tf.gather(images_two, inds_two, axis=0)
+            bboxes_two = tf.gather(bboxes_two, inds_two, axis=0)
+            classes_two = tf.gather(classes_two, inds_two, axis=0)
+
+            image, bbox, classes = mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_two)
+        else:
+            image = images_one
+            bbox = bboxes_one
+            classes = classes_one
+            
+        return image, self._label_encoder._encode_batch(bbox, classes)
+
+    def _build_dataset(self):
+        self._tfrecords = self._tfrecords.filter(lambda samples: len(samples["objects"]["label"]) >= 1) #117266 #4952  and tf.reduce_any(samples["objects"]["label"] == 0)
+        
+        if self.mode == 'train':
+            ds1 = (
+                self._tfrecords
+                .shuffle(16*self._batch_size)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
+                .padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
+            )
+            ds2 = (
+                self._tfrecords
+                .shuffle(16*self._batch_size)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
+                .padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
+            )
+            self._dataset = (
+                tf.data.Dataset.zip((ds1, ds2))
+                .map(self._preprocess_after_batch, num_parallel_calls=tf.data.AUTOTUNE)
+                .prefetch(tf.data.AUTOTUNE)
+            )
+
+        elif self.mode == 'validation':
+            self._dataset = (
+                self._tfrecords
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
+                .batch(batch_size=self._batch_size, drop_remainder = False)
+                .prefetch(tf.data.AUTOTUNE)
+            )
+
     @property
     def dataset(self):
         return self._dataset
