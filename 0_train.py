@@ -32,7 +32,7 @@ if __name__ =="__main__":
     config['training_config']['num_classes'] = 80
 
     model = ModelBuilder(config = config)
-    #model.load_weights("logs/MB3_SSDLite_3264").expect_partial()
+    #model.load_weights("logs/MobileDet_PFH_SSD/weights/_epoch40_mAP0.143").expect_partial()
 
 
     ######################################### DATA

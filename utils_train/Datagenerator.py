@@ -205,7 +205,7 @@ class DatasetBuilder():
         if self.mode == 'train':
             self._dataset = (
                 self._tfrecords#.with_options(options)
-                .shuffle(16*self._batch_size, reshuffle_each_iteration=False)
+                .shuffle(8*self._batch_size, reshuffle_each_iteration=False)
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = True)
                 #.padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
@@ -395,54 +395,55 @@ class DatasetBuilder_temp():
         cocoLabel = {"original_shape": originalShape, "image_id": samples['image/id']}
 
         if self.mode == 'train':
-            return (image/127.5) -1.0, bbox, classes, originalShape
+            return (image/127.5) -1.0, bbox, classes
         else:
             return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes), cocoLabel
 
-    def _preprocess_after_batch(self, ds_one, ds_two):
-        images_one, bboxes_one, classes_one, original_shape_one = ds_one
-        images_two, bboxes_two, classes_two, original_shape_two = ds_two
-        batch_size = tf.shape(images_one)[0]
+    def _preprocess_after_batch(self, ds1, ds2, ds3, ds4):
+        inner_p = tf.random.uniform([], minval=0, maxval=1)
+        if inner_p < 0.0:
+            image, bbox, classes = mixUp(ds1, ds2)
 
-        if tf.random.uniform([], minval=0, maxval=1) < 0.5:
-            inds_one = tf.argsort(tf.cast(original_shape_one[..., 0]/original_shape_one[..., 1], tf.float64))
-            inds_two = tf.argsort(-tf.cast(original_shape_two[..., 0]/original_shape_two[..., 1], tf.float64))
-
-            images_one = tf.gather(images_one, inds_one, axis=0)
-            bboxes_one = tf.gather(bboxes_one, inds_one, axis=0)
-            classes_one = tf.gather(classes_one, inds_one, axis=0)
-
-            images_two = tf.gather(images_two, inds_two, axis=0)
-            bboxes_two = tf.gather(bboxes_two, inds_two, axis=0)
-            classes_two = tf.gather(classes_two, inds_two, axis=0)
-
-            image, bbox, classes = mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_two)
+        elif inner_p < 0.99 and inner_p >= 0.0:
+            image, bbox, classes = mosaic(ds1, ds2, ds3, ds4)
+            
         else:
+            images_one, bboxes_one, classes_one = ds1
+            images_two, bboxes_two, classes_two = ds2
             image = images_one
             bbox = bboxes_one
             classes = classes_one
             
         return image, self._label_encoder._encode_batch(bbox, classes)
-
+            
     def _build_dataset(self):
         self._tfrecords = self._tfrecords.filter(lambda samples: len(samples["objects"]["label"]) >= 1) #117266 #4952  and tf.reduce_any(samples["objects"]["label"] == 0)
         
         if self.mode == 'train':
             ds1 = (
                 self._tfrecords
-                .shuffle(16*self._batch_size)
+                .shuffle(2*self._batch_size)
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
-                .padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
             )
             ds2 = (
                 self._tfrecords
-                .shuffle(16*self._batch_size)
+                .shuffle(2*self._batch_size)
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
-                .padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
+            )
+            ds3 = (
+                self._tfrecords
+                .shuffle(2*self._batch_size)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
+            )
+            ds4 = (
+                self._tfrecords
+                .shuffle(2*self._batch_size)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
             )
             self._dataset = (
-                tf.data.Dataset.zip((ds1, ds2))
+                tf.data.Dataset.zip((ds1, ds2, ds3, ds4))
                 .map(self._preprocess_after_batch, num_parallel_calls=tf.data.AUTOTUNE)
+                .padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1))
                 .prefetch(tf.data.AUTOTUNE)
             )
 

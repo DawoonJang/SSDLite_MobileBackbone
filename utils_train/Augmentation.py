@@ -182,3 +182,48 @@ def randomExpand(image, bbox, expandMax=1.5, p = 1.0):
             ((bbox[..., 3] + expandXL)/(expandXL + expandXR + 1.0))
         ], axis= -1)
     return newImage, new_bbox
+
+def mixUp(ds1, ds2):
+    def _sample_beta_distribution(size, concentration_0=0.5, concentration_1=0.5):
+        gamma_1_sample = tf.random.gamma(shape=[size], alpha=concentration_1)
+        gamma_2_sample = tf.random.gamma(shape=[size], alpha=concentration_0)
+        return gamma_1_sample / (gamma_1_sample + gamma_2_sample)
+    
+    images_one, bboxes_one, classes_one = ds1
+    images_two, bboxes_two, classes_two = ds2
+
+    images = images_one * 0.5 + images_two * (1 - 0.5)
+    return images, tf.concat([bboxes_one, bboxes_two], 0), tf.concat([classes_one, classes_two], 0)
+
+def mosaic(ds1, ds2, ds3, ds4):
+    images1, bboxes1, classes1 = ds1
+    images2, bboxes2, classes2 = ds2
+    images3, bboxes3, classes3 = ds3
+    images4, bboxes4, classes4 = ds4
+    
+    images1, bboxes1, classes1  = randomCrop(images1, bboxes1, classes1)
+    images2, bboxes2, classes2  = randomCrop(images2, bboxes2, classes2)
+    images3, bboxes3, classes3  = randomCrop(images3, bboxes3, classes3)
+    images4, bboxes4, classes4  = randomCrop(images4, bboxes4, classes4)
+
+    h=320
+    w=320
+    border = tf.random.uniform([2], h//5*2, h//5*3, tf.int32)
+
+    images1 = tf.image.resize(images1, [border[0], border[1]])
+    images2 = tf.image.resize(images2, [border[0], w-border[1]])
+    images3 = tf.image.resize(images3, [h-border[0], border[1]])
+    images4 = tf.image.resize(images4, [h-border[0], w-border[1]])
+    output_image = tf.concat([tf.concat([images1, images2], 1), tf.concat([images3, images4], 1)], 0)
+
+    border = tf.cast(border/h, tf.float32)
+    #border = tf.tile(border[tf.newaxis, ...],[1, 2])
+    bboxes1 = tf.concat([border,border], -1)*bboxes1
+    bboxes2 = tf.stack([border[0], 1-border[1], border[0], 1-border[1]], -1)*bboxes2+tf.stack([0.0,border[1],0.0,0.0], -1)
+    bboxes3 = tf.stack([1-border[0], border[1], 1-border[0], border[1]], -1)*bboxes3+tf.stack([border[0],0.0,0.0,0.0], -1)
+    bboxes4 = tf.stack([1-border[0], 1-border[1], 1-border[0], 1-border[1]], -1)*bboxes4+tf.stack([border[0],border[1],0.0,0.0], -1)
+
+    output_boxes = tf.concat([bboxes1, bboxes2, bboxes3, bboxes4], 0)
+
+    output_classes = tf.concat([classes1, classes2, classes3, classes4], 0)
+    return output_image, output_boxes, output_classes

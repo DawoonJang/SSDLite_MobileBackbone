@@ -137,7 +137,7 @@ class Logger(tf.keras.callbacks.Callback):
 
     def _cocoeval(self, epoch, catIds = None):
         self._processed_detections = []
-        for sample in tqdm(self.val_data):
+        for sample in self.val_data:
             self.accumulate_results(sample)
 
         if len(self._processed_detections) > 0:
