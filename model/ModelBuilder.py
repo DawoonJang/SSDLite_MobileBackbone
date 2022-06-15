@@ -17,10 +17,7 @@ def get_scaled_losses(loss, regularization_losses=None):
 
 def reduce_losses(losses_dict):
     for key, value in losses_dict.items():
-        if  key != "RegL":
-            losses_dict[key] = tf.reduce_mean(value)
-        else:
-            losses_dict[key] = tf.math.add_n(value)
+        losses_dict[key] = tf.reduce_mean(value)
     return losses_dict
 
 class DecodePredictions(tf.keras.layers.Layer):
@@ -29,7 +26,7 @@ class DecodePredictions(tf.keras.layers.Layer):
         self._Anchors= AnchorBox(config).get_anchors()
         self._loc_variance=tf.constant(config['model_config']['box_variances'], dtype=_policy.compute_dtype)
         self.iou_threshold=0.6
-        self.score_threshold=0.1
+        self.score_threshold=0.01
         self.max_detections=100
         self._num_classes=config['training_config']["num_classes"]
         self._mode = config['training_config']['BoxLoss']['LossFunction'].lower()
@@ -111,10 +108,10 @@ class ModelBuilder(tf.keras.Model):
 
             loss=cls_loss+loc_loss
             _scaled_losses=get_scaled_losses(loss, self.losses)
-            _scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)#
+            #_scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)#
         
         scaled_gradients = tape.gradient(_scaled_losses, self.trainable_variables)
-        scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)#
+        #scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)#
         self.optimizer.apply_gradients(zip(scaled_gradients, self.trainable_variables))
 
         loss_dict={

@@ -141,7 +141,7 @@ def _SeparableDepthwiseConv(inputs, filters, kernel_size=3, strides=2, padding='
                     padding=padding,
                     use_bias=False,
                     kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                    #kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
+                    kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
                     bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
                     trainable=conf_dict['trainable'],
                     name=prefix+'DepthwiseConv')(inputs)

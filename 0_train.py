@@ -11,12 +11,12 @@ from utils_train.Datagenerator import DatasetBuilder, DatasetBuilder_temp
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
+#os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 if __name__ =="__main__":
     ######################################## Setting
     tf.config.optimizer.set_jit(True)
-    tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
+    #tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
     
     ######################################### MODEL
     modelName = "MobileDet_PFH_SSD"
@@ -36,14 +36,13 @@ if __name__ =="__main__":
 
 
     ######################################### DATA
-    train_dataset = DatasetBuilder_temp(config, mode = 'train')
-    test_dataset = DatasetBuilder_temp(config, mode = 'validation')
+    train_dataset = DatasetBuilder(config, mode = 'train')
+    test_dataset = DatasetBuilder(config, mode = 'validation')
 
 
     ######################################### Compile
     optimizer = GCSGD(momentum=0.9, nesterov=False)
-    #optimizer = tf.keras.optimizers.SGD(momentum=0.9)
-    optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
+    #optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
 
     #model.summary(expand_nested=True, show_trainable=True)

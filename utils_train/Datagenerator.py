@@ -147,7 +147,7 @@ class DatasetBuilder():
 
         self._build_dataset()
     
-    def _preprocess(self, samples):
+    def _preprocess_before_batch(self, samples):
         '''
             in_bbox_format: [ymin xmin ymax xmax]
             out_bbox_format: [cy cx h w]
@@ -191,9 +191,13 @@ class DatasetBuilder():
         cocoLabel = {"original_shape": originalShape, "image_id": samples['image/id']}
 
         if self.mode == 'train':
-            return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes)
+            #return (image/127.5) -1.0, bbox, classes, originalShape
+            return (image/127.5) -1.0,  self._label_encoder._encode_sample(bbox, classes)#, originalShape
         else:
             return (image/127.5) -1.0, self._label_encoder._encode_sample(bbox, classes), cocoLabel
+
+    def _preprocess_after_batch(self, image, bbox, classes, originalShape):
+        return image, self._label_encoder._encode_batch(bbox, classes)
 
     def _build_dataset(self):
         self._tfrecords = self._tfrecords.filter(lambda samples: len(samples["objects"]["label"]) >= 1) #117266 #4952  and tf.reduce_any(samples["objects"]["label"] == 0)
@@ -202,15 +206,17 @@ class DatasetBuilder():
             self._dataset = (
                 self._tfrecords#.with_options(options)
                 .shuffle(16*self._batch_size, reshuffle_each_iteration=False)
-                .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = True)
+                #.padded_batch(self._batch_size, padding_values=(0.0, 1e-8, -1, None), drop_remainder=True)
+                #.map(self._preprocess_after_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .prefetch(tf.data.AUTOTUNE)
             )
 
         elif self.mode == 'validation':
             self._dataset = (
                 self._tfrecords
-                .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = False)
                 .prefetch(tf.data.AUTOTUNE)
             )
