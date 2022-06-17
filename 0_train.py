@@ -34,7 +34,8 @@ FLAGS = flags.FLAGS
 
 def main(_argv):
     tf.config.optimizer.set_jit(True)
-    
+    tf.random.set_seed(22)
+
     if FLAGS.fp16:
         logging.info('Training Precision: FP16')
         tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
@@ -49,10 +50,7 @@ def main(_argv):
     
     with open(os.path.join("model/0_Config", modelName+".json"), "r") as config_file:
         config = json.load(config_file)
-    config['modelName'] = modelName
-    model = ModelBuilder(config = config)
-    #model.load_weights("logs/MobileDet_PFH_SSD/weights/_epoch40_mAP0.143").expect_partial()
-
+    
     logging.info('Training dataset: {}'.format(FLAGS.dataset))
     if FLAGS.dataset == 'pascal':
         train_dataset = DatasetBuilder_Pascal(config, mode = 'train')
@@ -66,9 +64,12 @@ def main(_argv):
         val_file = "data/coco_val2017.json"
 
     ######################################### Compile
+    config['modelName'] = modelName
+    model = ModelBuilder(config = config)
+    #model.load_weights("logs/MobileDet_PFH_SSD/weights/_epoch40_mAP0.143").expect_partial()
+
     optimizer = GCSGD(momentum=0.9, nesterov=False)
     #optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
-
 
     #model.summary(expand_nested=True, show_trainable=True)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])

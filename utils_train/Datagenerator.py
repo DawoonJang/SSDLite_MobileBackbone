@@ -117,7 +117,7 @@ class DatasetBuilder_COCO(DatasetBuilder):
         
         if self.mode == 'train':
             self._dataset = (
-                self._tfrecords#.with_options(options)
+                self._tfrecords
                 .shuffle(8*self._batch_size, reshuffle_each_iteration=False)
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = True)

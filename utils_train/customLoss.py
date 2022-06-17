@@ -7,10 +7,24 @@ class SmoothL1(tf.losses.Loss):
     def __init__(self, delta):
         super().__init__(reduction="none", name="SmoothL1Loss")
         self._delta = delta
-        
     def call(self, y_true, y_pred):
         difference = tf.abs(y_true - y_pred)
         loss = tf.where(tf.less(difference, self._delta), 0.5 * difference**2, difference - 0.5)
+        return tf.reduce_sum(loss, axis=-1)
+
+class BalanceL1(tf.losses.Loss):
+    def __init__(self, delta, alpha = 0.5, gamma=1.5):
+        super().__init__(reduction="none", name="BalanceL1")
+        self._delta = delta
+        self._alpha = alpha
+        self._gamma = gamma
+    def call(self, y_true, y_pred):
+        difference = tf.abs(y_true - y_pred)
+        
+        b = tf.math.exp(self._gamma/self._alpha) - 1
+        loss = tf.where(tf.less(difference, self._delta), \
+            self._alpha/b*(b*difference + 1) * tf.math.log(b*difference/self._delta + 1) - self._alpha*difference,\
+            self._gamma * difference + self._gamma/b - self._alpha * self._delta)
         return tf.reduce_sum(loss, axis=-1)
 
 class FocalLoss(tf.losses.Loss):
@@ -29,16 +43,15 @@ class FocalLoss(tf.losses.Loss):
 
 class QFocalLoss(tf.losses.Loss):
     def __init__(self, alpha, gamma):
-        super().__init__(reduction="none", name="FocalLoss")
+        super().__init__(reduction="none", name="QFocalLoss")
         self._alpha = alpha
         self._gamma = gamma
 
     def call(self, y_true, y_pred):
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true, logits=y_pred)
         pred_prob = tf.sigmoid(y_pred)
-        alpha = y_true*self._alpha + (1-y_true)*(1-self._alpha)
 
-        loss = alpha * tf.pow(tf.abs(y_true - pred_prob), self._gamma) * cross_entropy
+        loss = tf.pow(tf.abs(y_true - pred_prob), self._gamma) * cross_entropy
         return tf.reduce_sum(loss, axis=-1)
 
 class MultiBoxLoss(tf.losses.Loss):

@@ -111,7 +111,11 @@ class LabelEncoder():
         cls_target = tf.where(ignore_mask, -2.0, cls_target)
         cls_target = tf.expand_dims(cls_target, axis=-1)
 
-        label = tf.concat([box_target, cls_target, tf.expand_dims(max_iou, -1)], axis=-1)
+        iou_target = tf.where(positive_mask, max_iou, 0.0)
+        iou_target = tf.expand_dims(iou_target, -1)
+
+
+        label = tf.concat([box_target, cls_target, iou_target], axis=-1)
         return label
 
     def _encode_batch(self, gt_boxes, cls_ids):

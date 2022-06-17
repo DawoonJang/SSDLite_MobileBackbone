@@ -3,11 +3,11 @@ Tensorflow2 and Keras implementation of MobileNetV3 and MobileDet SSD Lite
 
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
-1. [22/06/16] Update: Mosaic
+2. [22/06/16] Update: Mosaic
+2. [22/06/17] Update: BalanceL1 Loss
 
 ## Inference Examples
-<img width="50%" src="https://user-images.githubusercontent.com/89026839/173187633-05a4711c-7d6b-4352-a217-234fabb5691d.jpg"/>
-<img width="50%" src="https://user-images.githubusercontent.com/89026839/173187669-3a385015-9412-4db7-8f4d-4e2ed1be0480.jpg"/>
+<img width="49%" src="https://user-images.githubusercontent.com/89026839/173187633-05a4711c-7d6b-4352-a217-234fabb5691d.jpg"/> <img width="49%" src="https://user-images.githubusercontent.com/89026839/173187669-3a385015-9412-4db7-8f4d-4e2ed1be0480.jpg"/>
 
 ## Reference
 ### Ref

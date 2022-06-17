@@ -103,7 +103,7 @@ def randomCrop(image, bbox, class_id, p = 1.0):
     
     im_box_begin, im_box_size, im_box = tf.image.sample_distorted_bounding_box(image_shape,
                                                             bounding_boxes=boxes_expanded,
-                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9]), #rand
+                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9]), #[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
                                                             aspect_ratio_range=[0.5, 2.0], #rand
                                                             area_range=[0.1, 1], #rand
                                                             max_attempts=100,
