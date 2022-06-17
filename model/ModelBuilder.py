@@ -4,7 +4,7 @@ from model.BackBone.builder import BackBoneBuild
 from model.Neck.builder import NeckBuild
 from model.Head.builder import HeadBuild
 
-from utils_train.Datagenerator import AnchorBox
+from utils_train.Encoder import AnchorBox
 from utils_train.utils import convert_to_corners
 
 _policy=tf.keras.mixed_precision.global_policy()
@@ -26,7 +26,7 @@ class DecodePredictions(tf.keras.layers.Layer):
         self._Anchors= AnchorBox(config).get_anchors()
         self._loc_variance=tf.constant(config['model_config']['box_variances'], dtype=_policy.compute_dtype)
         self.iou_threshold=0.6
-        self.score_threshold=0.01
+        self.score_threshold=0.1
         self.max_detections=100
         self._num_classes=config['training_config']["num_classes"]
         self._mode = config['training_config']['BoxLoss']['LossFunction'].lower()

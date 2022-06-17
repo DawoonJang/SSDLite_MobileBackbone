@@ -2,8 +2,6 @@ import tensorflow as tf
 import matplotlib.pylab as plt
 import numpy as np
 
-_policy = tf.keras.mixed_precision.global_policy()
-
 def swap_xy(boxes):
     """Swaps order the of x and y coordinates of the boxes.
 
@@ -51,82 +49,6 @@ def CalculateIOU(boxes1, boxes2):
     union_area = boxes1_area[:, None] + boxes2_area - intersection_area
     return tf.math.divide_no_nan(intersection_area, union_area)
 
-def CalculateCIOU(boxes_gt, boxes_pred):
-    '''
-        input_format x1 y1 x2 y2
-    '''
-    inter_lu = tf.maximum(boxes_gt[:, :, :2], boxes_pred[:, :, :2])
-    inter_rd = tf.minimum(boxes_gt[:, :, 2:], boxes_pred[:, :, 2:])
-    
-    outer_lu = tf.minimum(boxes_gt[:, :, :2], boxes_pred[:, :, :2])
-    outer_rd = tf.maximum(boxes_gt[:, :, 2:], boxes_pred[:, :, 2:])
-
-    w_gt = boxes_gt[:, :, 2] - boxes_gt[:, :, 0]
-    h_gt = boxes_gt[:, :, 3] - boxes_gt[:, :, 1]
-    w_pred = boxes_pred[:, :, 2] - boxes_pred[:, :, 0]
-    h_pred = boxes_pred[:, :, 3] - boxes_pred[:, :, 1]
-
-    center_x_gt = (boxes_gt[:, :, 2] + boxes_gt[:, :, 0]) / 2
-    center_y_gt = (boxes_gt[:, :, 3] + boxes_gt[:, :, 1]) / 2
-    center_x_pred = (boxes_pred[:, :, 2] + boxes_pred[:, :, 0]) / 2
-    center_y_pred = (boxes_pred[:, :, 3] + boxes_pred[:, :, 1]) / 2
-
-    boxes_gt_area = (boxes_gt[:, :, 2] - boxes_gt[:, :, 0]) * (boxes_gt[:, :, 3] - boxes_gt[:, :, 1])
-    boxes_pred_area = (boxes_pred[:, :, 2] - boxes_pred[:, :, 0]) * (boxes_pred[:, :, 3] - boxes_pred[:, :, 1])
-
-    inter_intersection = tf.maximum(0.0, inter_rd - inter_lu)
-    inter_intersection_area = inter_intersection[:, :, 0] * inter_intersection[:, :, 1]
-    union_area = tf.maximum(boxes_gt_area + boxes_pred_area - inter_intersection_area, 1e-8)
-    
-    iou = tf.clip_by_value(inter_intersection_area/union_area, 0.0, 1.0)
-
-    outer_intersection = tf.maximum(0.0, outer_rd - outer_lu)
-    c = (outer_intersection[:, :, 0]**2) + (outer_intersection[:, :, 1]**2)
-    d = (center_x_gt - center_x_pred)**2 + (center_y_gt - center_y_pred)**2
-    u = d / c
-
-    arctanTerm = tf.math.atan(w_gt / (h_gt+1e-8)) - tf.math.atan(w_pred / (h_pred+1e-8))
-    v = 4 / (np.pi ** 2) * tf.pow(arctanTerm, 2)
-    ar = 8 / (np.pi ** 2) * arctanTerm * ((w_pred - 2 * w_pred) * h_pred)
-
-    S = 1 - iou
-    alpha = v/(S + v + 1e-8)
-
-    cious = iou - (u + alpha * ar)
-    return tf.clip_by_value(cious, -1.0, 1.0)
-
-def CalculateDIOU(boxes_gt, boxes_pred):
-    '''
-        input_format x1 y1 x2 y2
-    '''
-    inter_lu = tf.maximum(boxes_gt[..., :2], boxes_pred[..., :2])
-    inter_rd = tf.minimum(boxes_gt[..., 2:], boxes_pred[..., 2:])
-    
-    outer_lu = tf.minimum(boxes_gt[..., :2], boxes_pred[..., :2])
-    outer_rd = tf.maximum(boxes_gt[..., 2:], boxes_pred[..., 2:])
-
-    center_x_gt = (boxes_gt[..., 2] + boxes_gt[..., 0]) / 2
-    center_y_gt = (boxes_gt[..., 3] + boxes_gt[..., 1]) / 2
-    center_x_pred = (boxes_pred[..., 2] + boxes_pred[..., 0]) / 2
-    center_y_pred = (boxes_pred[..., 3] + boxes_pred[..., 1]) / 2
-
-    boxes_gt_area = (boxes_gt[..., 2] - boxes_gt[..., 0]) * (boxes_gt[..., 3] - boxes_gt[..., 1])
-    boxes_pred_area = (boxes_pred[..., 2] - boxes_pred[..., 0]) * (boxes_pred[..., 3] - boxes_pred[..., 1])
-
-    inter_intersection = tf.maximum(0.0, inter_rd - inter_lu)
-    inter_intersection_area = inter_intersection[..., 0] * inter_intersection[..., 1]
-    union_area = tf.maximum(boxes_gt_area + boxes_pred_area - inter_intersection_area, 1e-8)
-    
-    iou = tf.clip_by_value(inter_intersection_area/union_area, 0.0, 1.0)
-
-    outer_intersection = tf.maximum(0.0, outer_rd - outer_lu)
-    c = (outer_intersection[..., 0]**2) + (outer_intersection[..., 1]**2)
-    d = (center_x_gt - center_x_pred)**2 + (center_y_gt - center_y_pred)**2
-    u = d / c
-
-    Dious = iou - u
-    return tf.clip_by_value(Dious, -1.0, 1.0)
-    #return -tf.math.log(tf.clip_by_value(iou,1e-8,1.0))+u
 ################################## from TFOD
 def combined_static_and_dynamic_shape(tensor):
     """Returns a list containing static and dynamic values for the dimensions.

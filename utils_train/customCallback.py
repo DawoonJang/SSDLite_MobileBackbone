@@ -94,7 +94,10 @@ class Logger(tf.keras.callbacks.Callback):
             
             for box, int_id, score in zip(boxes, classes, scores):
                 temp_dict = coco_eval_dict.copy()
-                temp_dict['image_id'] = int(image_id)
+                try:
+                    temp_dict['image_id'] = int(image_id)
+                except:
+                    temp_dict['image_id'] = int(image_id.numpy()[:-4])
                 temp_dict['category_id'] = self._labelMapList[int(int_id)] if int_id < 80 else int(int_id)
                 temp_dict['bbox'] = box.tolist()
                 temp_dict['score'] = float(score)
@@ -170,12 +173,12 @@ class Logger(tf.keras.callbacks.Callback):
             self._write_mAP(scores, epoch)
 
 class CallbackBuilder():
-    def __init__(self, config, dataForEval):
+    def __init__(self, config, dataForEval, val_file="data/pascal_test2007.json"):
         self.Logger = Logger(
             val_data = dataForEval,
             config = config,
-            annotation_file_path = "data/coco_annotation/annotations/instances_val2017.json",
-            prediction_file_path = "data/coco_annotation/annotations/inference.json"
+            annotation_file_path = val_file,
+            prediction_file_path = "data/inference.json"
         )
             
         self.LrScheduler = tf.keras.callbacks.LearningRateScheduler(

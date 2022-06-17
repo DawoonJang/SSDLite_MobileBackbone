@@ -201,13 +201,13 @@ def mosaic(ds1, ds2, ds3, ds4):
     images3, bboxes3, classes3 = ds3
     images4, bboxes4, classes4 = ds4
     
+    h, w, _ = tf.unstack(tf.shape(images1))
+
     images1, bboxes1, classes1  = randomCrop(images1, bboxes1, classes1)
     images2, bboxes2, classes2  = randomCrop(images2, bboxes2, classes2)
     images3, bboxes3, classes3  = randomCrop(images3, bboxes3, classes3)
     images4, bboxes4, classes4  = randomCrop(images4, bboxes4, classes4)
-
-    h=320
-    w=320
+    
     border = tf.random.uniform([2], h//5*2, h//5*3, tf.int32)
 
     images1 = tf.image.resize(images1, [border[0], border[1]])
@@ -217,7 +217,6 @@ def mosaic(ds1, ds2, ds3, ds4):
     output_image = tf.concat([tf.concat([images1, images2], 1), tf.concat([images3, images4], 1)], 0)
 
     border = tf.cast(border/h, tf.float32)
-    #border = tf.tile(border[tf.newaxis, ...],[1, 2])
     bboxes1 = tf.concat([border,border], -1)*bboxes1
     bboxes2 = tf.stack([border[0], 1-border[1], border[0], 1-border[1]], -1)*bboxes2+tf.stack([0.0,border[1],0.0,0.0], -1)
     bboxes3 = tf.stack([1-border[0], border[1], 1-border[0], border[1]], -1)*bboxes3+tf.stack([border[0],0.0,0.0,0.0], -1)
