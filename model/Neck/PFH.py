@@ -1,12 +1,11 @@
 import tensorflow as tf
-from model.customLayer import _Conv, _SeparableDepthwiseConv
+from model.customLayer import _Conv, _DeptwiseConv
 
 def _Fblock(inputs, filters, kernel_size, strides, block_id=0, **config_dict):
     prefix = 'Fblock{}/'.format(block_id)
-    x=_Conv(inputs, filters = filters//2, kernel_size = 1, strides = 1,
-            prefix=prefix+"Expand", **config_dict)
-    x=_SeparableDepthwiseConv(x, filters = filters, kernel_size = kernel_size, strides = strides, 
-                            prefix=prefix, **config_dict)
+    x = _Conv(inputs, filters = filters//2, kernel_size = 1, strides = 1, prefix=prefix+"Expand", **config_dict)
+    x = _DeptwiseConv(x, kernel_size=kernel_size, strides=strides, prefix=prefix, **config_dict)
+    x = _Conv(x, filters = filters, kernel_size=1, strides=1, padding='valid', prefix=prefix, normalization=None, activation=None, **config_dict)
 
     return x
 
@@ -14,9 +13,11 @@ def PFH(x, config = None):
     filtersList = config["model_config"]["neck"]["filters"]
 
     config_dict = {
-        'reg': config["model_config"]["neck"]["regularization"],
-        'trainable': not config["model_config"]["neck"]["isFreeze"]
-        }
+        'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["neck"]["regularization"]),
+        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
+        'trainable':not config["model_config"]["backbone"]["isFreeze"],
+        'use_bias':False
+    }
 
     F1 = x[-2]
     F2 = x[-1]

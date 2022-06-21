@@ -1,3 +1,5 @@
+from tkinter.messagebox import NO
+from matplotlib.pyplot import bone
 import tensorflow as tf
 import numpy as np
 import tensorflow_model_optimization as tfmot
@@ -43,44 +45,16 @@ class Sigmoid(tf.keras.layers.Layer, tfmot.sparsity.keras.PrunableLayer):
     def get_prunable_weights(self):
         return []
 
-class WeightedSum(tf.keras.layers.Layer):
-    """
-        A custom keras layer to learn a weighted sum of tensors
-    """
-
-    def __init__(self, **kwargs):
-        super(WeightedSum, self).__init__(**kwargs)
-
-    def build(self, input_shape=1):
-        self.a = self.add_weight(
-            name='alpha',
-            shape=(4,),
-            initializer='ones',
-            dtype='float32',
-            trainable=True,
-        )
-        super(WeightedSum, self).build(input_shape)
-
-    def call(self, model_outputs):
-        return self.a[0] * model_outputs[0] + self.a[1] * model_outputs[1] + self.a[2] * model_outputs[2] + self.a[3] * model_outputs[3]
-
-    def compute_output_shape(self, input_shape):
-        return input_shape[0]
-
 def _Conv(inputs, filters, kernel_size=3, strides=2, padding='same', 
-        use_bias=False, normalization=BatchNormalization, activation=ReLU6,
+        normalization=BatchNormalization, activation=ReLU6,
         prefix=None, **conf_dict):
 
     x=Conv2D(filters=filters,
               kernel_size=kernel_size,
               strides=strides,
               padding=padding,
-              use_bias=use_bias,
-              kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-              kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-              bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
-              trainable=conf_dict['trainable'],
-              name=prefix+'Conv')(inputs)
+              name=prefix+'Conv',
+              **conf_dict)(inputs)
 
     if normalization is not None:
         x=normalization(trainable=conf_dict['trainable'], name=prefix+'BN')(x)
@@ -90,20 +64,32 @@ def _Conv(inputs, filters, kernel_size=3, strides=2, padding='same',
 
     return x
 
-def _DeptwiseConv(inputs, kernel_size=3, strides=2, padding='same', use_bias=False, dilation_rate=1,
+def _DeptwiseConv(inputs, kernel_size=3, strides=2, padding='same', dilation_rate=1,
                 normalization=BatchNormalization, activation=ReLU6,
                 prefix=None, **conf_dict):
+
+    conf_dict_inner = conf_dict.copy()
+
+    if 'kernel_initializer' in  conf_dict_inner.keys():
+        conf_dict_inner['depthwise_initializer'] = conf_dict_inner['kernel_initializer']
+        conf_dict_inner.pop('kernel_initializer')
+    if 'kernel_regularizer' in  conf_dict_inner.keys():
+        #conf_dict_inner['depthwise_regularizer'] = conf_dict_inner['kernel_regularizer']
+        conf_dict_inner.pop('kernel_regularizer')
+    if 'use_bias' in  conf_dict_inner.keys():
+        conf_dict_inner['use_bias'] = False
+    else:
+        if normalization is not None:
+            conf_dict_inner['use_bias'] = False
+        else:
+            conf_dict_inner['use_bias'] = True
 
     x=DepthwiseConv2D(kernel_size=kernel_size,
                     strides=strides,
                     padding=padding,
                     dilation_rate=dilation_rate,
-                    use_bias=use_bias,
-                    kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                    kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-                    bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
-                    trainable=conf_dict['trainable'],
-                    name=prefix+'DepwiseConv')(inputs)
+                    name=prefix+'DepwiseConv',
+                    **conf_dict_inner)(inputs)
 
     if normalization is not None:
         x=normalization(trainable=conf_dict['trainable'], name=prefix+'DepwiseBN')(x)
@@ -135,39 +121,6 @@ def _SeparableConv(inputs, filters, kernel_size=3, strides=2, padding='same', us
 
     return x
 
-def _SeparableDepthwiseConv(inputs, filters, kernel_size=3, strides=2, padding='same', use_bias=False, normalization=BatchNormalization, activation=ReLU6, prefix=None, **conf_dict):
-    x=DepthwiseConv2D(kernel_size=kernel_size,
-                    strides=strides,
-                    padding=padding,
-                    use_bias=False,
-                    kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                    kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-                    bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
-                    trainable=conf_dict['trainable'],
-                    name=prefix+'DepthwiseConv')(inputs)
-
-    x=BatchNormalization(trainable=conf_dict['trainable'], name=prefix+'DepthwiseBN')(x)
-    x=ReLU6(name=prefix+'DepthwiseAC')(x)
-
-    x=Conv2D(filters=filters,
-            kernel_size=1,
-            strides=1,
-            use_bias=use_bias,
-            padding='valid',
-            kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-            kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-            trainable=conf_dict['trainable'],
-            bias_initializer=conf_dict['bias_initializer'] if 'bias_initializer'in conf_dict.keys() else 'zeros',
-            name=prefix+'PointwiseConv')(x)
-
-    if normalization is not None:
-        x=normalization(trainable=conf_dict['trainable'], name=prefix+'PointwiseBN')(x)
-
-    if activation is not None:
-        x=activation(name=prefix+'PointwiseAC')(x)
-
-    return x
-
 def _SEBlock(inputs, se_ratio, prefix, activation, **conf_dict):
     '''
         Reference:
@@ -175,46 +128,18 @@ def _SEBlock(inputs, se_ratio, prefix, activation, **conf_dict):
                 "Searching for MobileNetV3 (ICCV 2019)"
     '''
     infilters=backend.int_shape(inputs)[-1]
+    conf_dict_inner = conf_dict.copy()
+    if 'use_bias' in  conf_dict_inner.keys():
+        conf_dict_inner['use_bias'] = True
 
     x=GlobalAveragePooling2D(keepdims=True, name=prefix+'SEAvgPool')(inputs)
 
-    x=_Conv(x, filters=_depth(infilters*se_ratio), kernel_size=1, padding='valid', use_bias=True,
-        normalization=None, activation=activation, prefix=prefix+'SE_1', **conf_dict)
-    x=_Conv(x, filters=infilters, kernel_size=1, padding='valid', use_bias=True,
-        normalization=None, activation=HSigmoid6, prefix=prefix+'SE_2', **conf_dict)
+    x=_Conv(x, filters=_depth(infilters*se_ratio), kernel_size=1, padding='valid',
+        normalization=None, activation=activation, prefix=prefix+'SE_1', **conf_dict_inner)
+    x=_Conv(x, filters=infilters, kernel_size=1, padding='valid',
+        normalization=None, activation=HSigmoid6, prefix=prefix+'SE_2', **conf_dict_inner)
 
     return Multiply(name=prefix+'SEMul')([inputs, x])
-
-def _LSCBlock(inputs, prefix, **conf_dict):
-    '''
-        Reference:
-                "MAOD: An Efficient Anchor-Free Object Detector Based on MobileDet (IEEE 2020)"
-    '''
-    x=Concatenate(name=prefix+'Spacial_Concat')([tf.reduce_max(inputs, axis=-1, keepdims=True), tf.reduce_mean(inputs, axis=-1, keepdims=True)])
-    x=tf.keras.layers.Conv2D(filters=1, 
-                            kernel_size=(7, 1), 
-                            padding="same",
-                            kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                            kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-                            trainable=conf_dict['trainable'],
-                            name=prefix+'Spacial_Attention_Conv1')(x)
-    x=HSigmoid6(name=prefix+'Spacial_Attention_Ac1')(x)
-    x=tf.keras.layers.Conv2D(filters=1, 
-                            kernel_size=(1, 7), 
-                            padding="same",
-                            kernel_initializer=tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-                            kernel_regularizer=tf.keras.regularizers.l2(conf_dict['reg']),
-                            trainable=conf_dict['trainable'],
-                            name=prefix+'Spacial_Attention_Conv2')(x)
-    x=HSigmoid6(name=prefix+'Spacial_Attention_Ac2')(x)
-
-    inputs2=Multiply(name=prefix+'Spacial_Attention_Mul')([inputs, x])
-
-    x2=Add(name=prefix+'Chennel_Attention_Add')([
-        HSigmoid6(name=prefix+'Chennel_Attention_Ac1')(GlobalAveragePooling2D(keepdims=True, name=prefix+'Chennel_Attention_Pool1')(inputs2)) \
-       ,HSigmoid6(name=prefix+'Chennel_Attention_Ac2')(GlobalMaxPooling2D(keepdims=True, name=prefix+'Chennel_Attention_Pool2')(inputs2))])
-    
-    return Multiply(name=prefix+'Chennel_Attention_Mul')([inputs2, x2])
 
 def _IBN(x, expansion, filters, kernel_size=3, strides=1, dilation_rate=1, activation=ReLU6, attentionMode="_SEBlock", block_id=0, Residual=True, Detour=False, **conf_dict):
     shortcut=x
@@ -228,23 +153,15 @@ def _IBN(x, expansion, filters, kernel_size=3, strides=1, dilation_rate=1, activ
         out=x
     
     x=_DeptwiseConv(x, kernel_size=kernel_size, dilation_rate=dilation_rate, activation=activation,
-                      strides=strides, prefix=prefix, **conf_dict)
+                    strides=strides, prefix=prefix, **conf_dict)
 
     if attentionMode == '_SEBlock':
         x=_SEBlock(x, 0.25, prefix, activation, **conf_dict)
-    elif attentionMode == '_LSCBlock':
-        x=_LSCBlock(x, prefix, **conf_dict)
-    elif attentionMode == None:
-        pass
-    else:
-        raise ValueError("Not implemented yet")
 
     x=_Conv(x, filters=filters, kernel_size=1, strides=1, activation=None, prefix=prefix+'Project', **conf_dict)
 
     
     if tf.math.equal(infilters, filters) and strides==1 and Residual:
-        if conf_dict['dropout']:
-            x=Dropout(conf_dict['dropout'], noise_shape=(None, 1, 1, 1), name=prefix+'dropout')(x)
         return Add(name=prefix+'Add')([shortcut, x])
     else:
         if Detour:
@@ -274,7 +191,7 @@ def _Fused(x, expansion, filters, kernel_size=3, strides=1, activation=ReLU6, at
               filters=filters,
               kernel_size=1,
               strides=1,
-              activation_fn=tf.identity,
+              activation_fn=None,
               prefix=prefix+'Conv2',
               **conf_dict)
     if tf.math.equal(infilters, filters) and strides==1 and Residual:
@@ -292,12 +209,10 @@ def _Tucker(x,
             block_id=0,
             Residual=True,
             **conf_dict):
-    """Tucker convolution layer (generalized bottleneck)."""
 
     shortcut=x
     infilters=backend.int_shape(x)[-1]
     prefix='TUC{}/'.format(block_id)
-
 
     x = _Conv(x,
             filters=_depth(infilters, input_rank_ratio),
@@ -317,7 +232,7 @@ def _Tucker(x,
             filters=filters,
             kernel_size=1,
             strides=1,
-            activation_fn=tf.identity,
+            activation_fn=None,
             prefix=prefix+'Conv3',
             **conf_dict)
 

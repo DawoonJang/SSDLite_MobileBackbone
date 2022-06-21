@@ -13,6 +13,7 @@ from utils_train.Datagenerator import DatasetBuilder_COCO, DatasetBuilder_Pascal
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 #os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 flags.DEFINE_boolean(
@@ -33,7 +34,7 @@ flags.DEFINE_string(
 FLAGS = flags.FLAGS
 
 def main(_argv):
-    tf.config.optimizer.set_jit(True)
+    tf.config.optimizer.set_jit("autoclustering")
     tf.random.set_seed(22)
 
     if FLAGS.fp16:
@@ -66,12 +67,12 @@ def main(_argv):
     ######################################### Compile
     config['modelName'] = modelName
     model = ModelBuilder(config = config)
-    #model.load_weights("logs/MobileDet_PFH_SSD/weights/_epoch40_mAP0.143").expect_partial()
+    #model.load_weights("logs/_epoch600_mAP0.132").expect_partial()
 
     optimizer = GCSGD(momentum=0.9, nesterov=False)
     #optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
-    #model.summary(expand_nested=True, show_trainable=True)
+    model.summary(expand_nested=True, show_trainable=True)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
     model.fit(train_dataset.dataset,
             epochs=config["training_config"]["epochs"],

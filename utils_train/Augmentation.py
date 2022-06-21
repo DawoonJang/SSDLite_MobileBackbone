@@ -34,7 +34,7 @@ def randomResize(image, boxes, targetH, targetW, p = 1.0):
 
 
 def flipHorizontal(image, boxes, p = 1.0):
-    if tf.random.uniform([], minval=0, maxval=1) < p:
+    if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, boxes
 
     image = tf.image.flip_left_right(image)
@@ -44,20 +44,21 @@ def flipHorizontal(image, boxes, p = 1.0):
 
 
 def flipVertical(image, boxes, p = 1.0):
-    if tf.random.uniform([], minval=0, maxval=1) < p:
+    if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, boxes
+
     image = tf.image.flip_up_down(image)
     boxes = tf.stack([1.0 - boxes[:, 2], boxes[:, 1], 1.0 - boxes[:, 0], boxes[:, 3]], axis=-1)
 
     return image, boxes
 
 def randomCrop(image, bbox, class_id, p = 1.0):
-    ###
-    # This crop code from TFOD API
-    #
-    ###
+    '''
+        This crop code from TFOD API https://github.com/tensorflow/models/blob/master/research/object_detection/core/preprocessor.py
+     
+    '''
 
-    if tf.random.uniform([], minval=0, maxval=1) < p:
+    if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, bbox, class_id
 
     def _prune_completely_outside_window(bbox, window):
@@ -99,24 +100,25 @@ def randomCrop(image, bbox, class_id, p = 1.0):
         return boxlist_new
     image_shape = tf.shape(image)
 
-    boxes_expanded = tf.expand_dims(bbox, 1) # boxes are [N, 4]. Lets first make them [N, 1, 4].
-    
+    boxes_expanded = tf.expand_dims(bbox, 1) # [N, 4] -> [N, 1, 4].
+    random_option = random.choice([0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0])
+
     im_box_begin, im_box_size, im_box = tf.image.sample_distorted_bounding_box(image_shape,
                                                             bounding_boxes=boxes_expanded,
-                                                            min_object_covered=random.choice([0.2, 0.3, 0.5, 0.7, 0.9]), #[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
-                                                            aspect_ratio_range=[0.5, 2.0], #rand
-                                                            area_range=[0.1, 1], #rand
+                                                            min_object_covered=random_option,
+                                                            aspect_ratio_range=[0.5, 2.0],
+                                                            area_range=[0.1, 1],
                                                             max_attempts=100,
-                                                            use_image_if_no_bounding_boxes=True)
+                                                            use_image_if_no_bounding_boxes=False)
 
 
     new_image = tf.slice(image, im_box_begin, im_box_size)
 
-    im_box_rank2 = tf.squeeze(im_box, axis=[0]) #[1,4]
-    im_box_rank1 = tf.squeeze(im_box) #[4]
+    im_box_rank2 = tf.squeeze(im_box, axis=[0])
+    im_box_rank1 = tf.squeeze(im_box)
 
     boxlist, inside_window_ids = _prune_completely_outside_window(bbox, im_box_rank1)
-    overlapping_boxlist, keep_ids = _prune_non_overlapping_boxes(boxlist, im_box_rank2, 0.3) #0.3 = overlap_thresh
+    overlapping_boxlist, keep_ids = _prune_non_overlapping_boxes(boxlist, im_box_rank2, random_option)
 
     new_bbox = _change_coordinate_frame(overlapping_boxlist, im_box_rank1)
     new_bbox = tf.clip_by_value(new_bbox, clip_value_min=0.0, clip_value_max=1.0)
@@ -131,11 +133,13 @@ def colorJitter(image, p = 1.0):
         return image
 
     if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_brightness(image, 0.3)
+        image = tf.image.random_brightness(image, 0.125)
     if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_contrast(image, 0.2, 0.4)
+        image = tf.image.random_contrast(image, 0.5, 1.5)
     if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_hue(image, 0.5)
+        image = tf.image.random_hue(image, 0.05)
+    if tf.random.uniform([], minval=0, maxval=1) < p:
+        image = tf.image.random_saturation(image, 0.5, 1.5)
     if tf.random.uniform([], minval=0, maxval=1) < p:
         image = tf.tile(tf.image.rgb_to_grayscale(image), [1,1,3])
     return image
@@ -152,7 +156,7 @@ def mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_t
 
 
 def randomExpand(image, bbox, expandMax=1.5, p = 1.0):
-    if tf.random.uniform([], minval=0, maxval=1) < p:
+    if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, bbox
         
     original_w = tf.cast(tf.shape(image)[1], tf.float32)

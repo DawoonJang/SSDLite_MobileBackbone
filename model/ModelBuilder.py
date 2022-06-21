@@ -12,7 +12,7 @@ _policy=tf.keras.mixed_precision.global_policy()
 def get_scaled_losses(loss, regularization_losses=None):
     loss = tf.reduce_mean(loss)
     if regularization_losses:
-        loss = loss + tf.math.add_n(regularization_losses)
+        loss += tf.math.add_n(regularization_losses)
     return loss
 
 def reduce_losses(losses_dict):

@@ -42,7 +42,7 @@ class Logger(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         self._write_summaries(epoch, logs)
         
-        if logs["val_TotalL"] + 0.01 < self._min_loss:
+        if logs["val_TotalL"] + 0.01 < self._min_loss and epoch > 10:
             self._min_loss = logs["val_TotalL"]
             isImprove = True
             self.patience = 0
@@ -187,7 +187,8 @@ class CallbackBuilder():
                                         warmup_steps = 4,
                                         total_steps = config["training_config"]["epochs"]))
 
+        self.TB = tf.keras.callbacks.TensorBoard(log_dir='logs/', profile_batch='500, 540')
     def get_callbacks(self):
-        callbacks_list = [self.Logger, self.LrScheduler]
+        callbacks_list = [self.Logger, self.LrScheduler] 
 
         return callbacks_list

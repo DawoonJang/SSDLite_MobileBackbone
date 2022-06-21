@@ -32,11 +32,11 @@ class DatasetBuilder():
         image, bbox, classes, inferMetric = self._prepare_proto(samples)
 
         if self.mode == 'train' or self.mode == 'bboxtest':
-            image, bbox, classes  = randomCrop(image, bbox, classes, p = 0.9)
+            image, bbox, classes  = randomCrop(image, bbox, classes, p = 0.85)
             #image, bbox           = randomExpand(image, bbox, 0.5)
             image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
             image, bbox           = flipHorizontal(image, bbox, p = 0.5)
-            image                 = colorJitter(image, p = 0.5)
+            #image                 = colorJitter(image, p = 0.5)
         else:
             image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
 
@@ -58,6 +58,7 @@ class DatasetBuilder():
 
     def _preprocess_after_batch(self, ds1, ds2, ds3, ds4):
         inner_p = tf.random.uniform([], minval=0, maxval=1)
+
         if inner_p < 0.0:
             image, bbox, classes = mixUp(ds1, ds2)
 
