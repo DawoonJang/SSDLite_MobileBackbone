@@ -9,11 +9,11 @@ from model.ModelBuilder import ModelBuilder
 from utils_train.customLoss import MultiBoxLoss
 from utils_train.customCallback import CallbackBuilder
 from utils_train.customOptimizer import GCSGD
-from utils_train.Datagenerator import DatasetBuilder_COCO, DatasetBuilder_Pascal, DatasetBuilder_COCO_Temp
+from utils_train.Datagenerator import Dataset_COCO, Dataset_Pascal, Dataset_COCO_Temp
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+#os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 #os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 flags.DEFINE_boolean(
@@ -54,13 +54,13 @@ def main(_argv):
     
     logging.info('Training dataset: {}'.format(FLAGS.dataset))
     if FLAGS.dataset == 'pascal':
-        train_dataset = DatasetBuilder_Pascal(config, mode = 'train')
-        test_dataset = DatasetBuilder_Pascal(config, mode = 'validation')
+        train_dataset = Dataset_Pascal(config, mode = 'train')
+        test_dataset = Dataset_Pascal(config, mode = 'validation')
         config['training_config']['num_classes'] = 20
         val_file = "data/pascal_test2007.json"
     elif FLAGS.dataset == 'coco':
-        train_dataset = DatasetBuilder_COCO(config, mode = 'train')
-        test_dataset = DatasetBuilder_COCO(config, mode = 'validation')
+        train_dataset = Dataset_COCO(config, mode = 'train')
+        test_dataset = Dataset_COCO(config, mode = 'validation')
         config['training_config']['num_classes'] = 80
         val_file = "data/coco_val2017.json"
 

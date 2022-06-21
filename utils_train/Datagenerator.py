@@ -82,7 +82,7 @@ class DatasetBuilder():
     def dataset(self):
         return self._dataset
 
-class DatasetBuilder_COCO(DatasetBuilder):
+class Dataset_COCO(DatasetBuilder):
     def __init__(self, config, mode='train'):
         super().__init__(config, mode)
 
@@ -138,7 +138,7 @@ class DatasetBuilder_COCO(DatasetBuilder):
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
             )
 
-class DatasetBuilder_Pascal(DatasetBuilder):
+class Dataset_Pascal(DatasetBuilder):
     def __init__(self, config, mode='train'):
         super().__init__(config, mode)
 
@@ -191,7 +191,7 @@ class DatasetBuilder_Pascal(DatasetBuilder):
     def __len__(self):
         return int(117266/self._batch_size)
         
-class DatasetBuilder_Custom(DatasetBuilder):
+class Datase_Custom(DatasetBuilder):
     def __init__(self,  config, mode='train'):
         super().__init__(config, mode)
 
@@ -249,7 +249,7 @@ class DatasetBuilder_Custom(DatasetBuilder):
                 .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
             )
 
-class DatasetBuilder_COCO_Temp(DatasetBuilder):
+class Dataset_COCO_Temp(DatasetBuilder):
     def __init__(self, config, mode='train'):
         super().__init__(config, mode)
     

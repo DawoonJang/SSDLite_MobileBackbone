@@ -10,27 +10,22 @@ class CosineDecayWithLinearWarmup(tf.keras.optimizers.schedules.CosineDecay):
             alpha=0.0,
             **kwargs):
         decay_steps_with_warmup = total_steps - warmup_steps
-        super(CosineDecayWithLinearWarmup,
-              self).__init__(initial_learning_rate=initial_learning_rate,
-                             decay_steps=decay_steps_with_warmup,
-                             alpha=alpha,
-                             name='cosine_decay_with_linear_warmup',
-                             **kwargs)
+        super().__init__(initial_learning_rate=initial_learning_rate,
+                        decay_steps=decay_steps_with_warmup,
+                        alpha=alpha,
+                        name='cosine_decay_with_linear_warmup',
+                        **kwargs)
 
         self.warmup_learning_rate = warmup_learning_rate
         self.warmup_steps = warmup_steps
         self._step_size = initial_learning_rate - self.warmup_learning_rate
 
     def __call__(self, step):
-        with tf.name_scope('CosineDecayWithLinearWarmup'):
-            learning_rate = tf.cond(
-                pred=tf.less(tf.cast(step, dtype=tf.float32), self.warmup_steps),
-                true_fn=lambda:
-                (self.warmup_learning_rate + tf.cast(step, dtype=tf.float32) /
-                    self.warmup_steps * self._step_size),
-                false_fn=lambda: (super(CosineDecayWithLinearWarmup,
-                                        self).__call__(step)))
-            return learning_rate
+        learning_rate = tf.cond(tf.less(tf.cast(step, dtype=tf.float32), self.warmup_steps),
+            lambda: (self.warmup_learning_rate + tf.cast(step, dtype=tf.float32) / self.warmup_steps * self._step_size),
+            lambda: (super().__call__(step)))
+            
+        return learning_rate
 
     def get_config(self):
         config = {

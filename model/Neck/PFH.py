@@ -5,7 +5,7 @@ def _Fblock(inputs, filters, kernel_size, strides, block_id=0, **config_dict):
     prefix = 'Fblock{}/'.format(block_id)
     x = _Conv(inputs, filters = filters//2, kernel_size = 1, strides = 1, prefix=prefix+"Expand", **config_dict)
     x = _DeptwiseConv(x, kernel_size=kernel_size, strides=strides, prefix=prefix, **config_dict)
-    x = _Conv(x, filters = filters, kernel_size=1, strides=1, padding='valid', prefix=prefix, normalization=None, activation=None, **config_dict)
+    x = _Conv(x, filters = filters, kernel_size=1, strides=1, padding='valid', prefix=prefix+"Pointwise", **config_dict)
 
     return x
 

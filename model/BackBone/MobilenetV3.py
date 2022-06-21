@@ -1,7 +1,5 @@
 import tensorflow as tf
-from model.customLayer import ReLU6, HSwish6, _depth, _IBN, _Conv, ReLU, backend, _Tucker, _Fused
-
-
+from model.customLayer import ReLU6, HSwish6, _depth, _IBN, _Conv, backend, _Tucker, _Fused
 
 def MobileNetV3Small(x, config=None):
     '''

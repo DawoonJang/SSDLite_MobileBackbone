@@ -19,19 +19,19 @@
             "name":"MobileNetV3",
             "width_multiplier": 1.0,
             "modelSize":"small",
-            "regularization":4e-5,
+            "regularization":2e-5,
             "isFreeze":false
         },
         "neck":
         {   "name":"PFH",
             "filters": [-1, -1, 512, 256, 256, 128],
-            "regularization":4e-5,
+            "regularization":2e-5,
             "isFreeze":false
         },
         "head":
         {
             "name": "SSD",
-            "regularization":4e-5,
+            "regularization":2e-5,
             "isFreeze":false
         } 
     },
