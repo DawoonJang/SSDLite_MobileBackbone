@@ -1,5 +1,3 @@
-from tkinter.messagebox import NO
-from matplotlib.pyplot import bone
 import tensorflow as tf
 import numpy as np
 import tensorflow_model_optimization as tfmot
@@ -96,6 +94,18 @@ def _DeptwiseConv(inputs, kernel_size=3, strides=2, padding='same', dilation_rat
 
     if activation is not None:
         x=activation(name=prefix+'DepwiseAC')(x)
+
+    return x
+
+
+def _SeparableDepthwiseConv(inputs, filters, kernel_size=3, strides=2, padding='same', normalization=BatchNormalization, activation=ReLU, prefix=None, **conf_dict):
+    
+    x=_DeptwiseConv(inputs, kernel_size=kernel_size, strides=strides, padding=padding,
+                normalization=BatchNormalization, activation=ReLU6,
+                prefix=prefix, **conf_dict)
+    x=_Conv(x, filters=filters, kernel_size=1, strides=1, padding='valid', 
+        normalization=normalization, activation=activation,
+        prefix=prefix, **conf_dict)
 
     return x
 

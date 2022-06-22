@@ -23,8 +23,7 @@ class CosineDecayWithLinearWarmup(tf.keras.optimizers.schedules.CosineDecay):
     def __call__(self, step):
         learning_rate = tf.cond(tf.less(tf.cast(step, dtype=tf.float32), self.warmup_steps),
             lambda: (self.warmup_learning_rate + tf.cast(step, dtype=tf.float32) / self.warmup_steps * self._step_size),
-            lambda: (super().__call__(step)))
-            
+            lambda: (super(CosineDecayWithLinearWarmup, self).__call__(step)))
         return learning_rate
 
     def get_config(self):

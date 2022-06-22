@@ -1,6 +1,6 @@
 import tensorflow as tf
 import random
-from utils_train.temp_f import *
+from utils_train.utils import CalculateIOA, scale
 
 def randomResize(image, boxes, targetH, targetW, p = 1.0):
     def _keep_aspect_ratio(img, boxes, h, w):
@@ -20,7 +20,7 @@ def randomResize(image, boxes, targetH, targetW, p = 1.0):
         return img, boxes
 
     def _dont_keep_aspect_ration(img, boxes, h, w):
-        img = tf.image.resize(img, (h, w))
+        img = tf.image.resize(img, (h, w), antialias=True)
         return img, boxes
 
     if tf.random.uniform([], minval=0, maxval=1) < p:
@@ -54,7 +54,8 @@ def flipVertical(image, boxes, p = 1.0):
 
 def randomCrop(image, bbox, class_id, p = 1.0):
     '''
-        This crop code from TFOD API https://github.com/tensorflow/models/blob/master/research/object_detection/core/preprocessor.py
+        This crop code from TFOD API 
+            https://github.com/tensorflow/models/blob/master/research/object_detection/core/preprocessor.py
      
     '''
 
@@ -64,32 +65,24 @@ def randomCrop(image, bbox, class_id, p = 1.0):
     def _prune_completely_outside_window(bbox, window):
         y_min, x_min, y_max, x_max = tf.split(value=bbox, num_or_size_splits=4, axis=1)
         win_y_min, win_x_min, win_y_max, win_x_max = tf.unstack(window)
+
         coordinate_violations = tf.concat([
             tf.greater_equal(y_min, win_y_max), tf.greater_equal(x_min, win_x_max),
             tf.less_equal(y_max, win_y_min), tf.less_equal(x_max, win_x_min)
         ], 1)
-        valid_indices = tf.reshape(
-            tf.where(tf.logical_not(tf.reduce_any(coordinate_violations, 1))), [-1])
-        return tf.gather(bbox, valid_indices), valid_indices
 
-    def _prune_outside_window(bbox, window):
-        y_min, x_min, y_max, x_max = tf.split(value=bbox, num_or_size_splits=4, axis=1)
-        win_y_min, win_x_min, win_y_max, win_x_max = tf.unstack(window)
-        coordinate_violations = tf.concat([
-            tf.less(y_min, win_y_min), tf.less(x_min, win_x_min),
-            tf.greater(y_max, win_y_max), tf.greater(x_max, win_x_max)
-        ], 1)
-        valid_indices = tf.reshape(
-            tf.where(tf.logical_not(tf.reduce_any(coordinate_violations, 1))), [-1])
-        return tf.gather(bbox, valid_indices), valid_indices
+        valid_mask = tf.reshape(tf.logical_not(tf.reduce_any(coordinate_violations, 1)), [-1])
+        return tf.boolean_mask(bbox, valid_mask), valid_mask
 
-    def _prune_non_overlapping_boxes(boxlist1, boxlist2, min_overlap=0.0):
-        ioa_ = ioa(boxlist2, boxlist1)  # [M, N] tensor
-        ioa_ = tf.reduce_max(ioa_, axis = [0])  # [N] tensor
-        keep_bool = tf.greater_equal(ioa_, tf.constant(min_overlap))
+    def _prune_non_overlapping_boxes(bbox, window, min_overlap=0.3):
+        #ioa_ = ioa(boxlist2, boxlist1)  # [M, N] tensor
+        ioa_  = CalculateIOA(window, bbox)  # [1, N] tensor
+        ioa_ = tf.reduce_max(ioa_, axis=0)  # [N] tensor
+        keep_bool = tf.greater_equal(ioa_, min_overlap)
         keep_inds = tf.squeeze(tf.where(keep_bool), axis=[1])
-        new_boxlist1 = tf.gather(boxlist1, keep_inds)
-        return new_boxlist1, keep_inds
+        #new_bbox = tf.gather(bbox, keep_inds)
+        new_bbox = tf.boolean_mask(bbox, keep_bool)
+        return new_bbox, keep_bool
 
     def _change_coordinate_frame(boxlist, window):
         win_height = window[2] - window[0]
@@ -101,47 +94,41 @@ def randomCrop(image, bbox, class_id, p = 1.0):
     image_shape = tf.shape(image)
 
     boxes_expanded = tf.expand_dims(bbox, 1) # [N, 4] -> [N, 1, 4].
-    random_option = random.choice([0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0])
+    random_option = [0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
 
     im_box_begin, im_box_size, im_box = tf.image.sample_distorted_bounding_box(image_shape,
                                                             bounding_boxes=boxes_expanded,
-                                                            min_object_covered=random_option,
-                                                            aspect_ratio_range=[0.5, 2.0],
+                                                            min_object_covered=random.choice(random_option),
+                                                            aspect_ratio_range=[3/4, 4/3],
                                                             area_range=[0.1, 1],
                                                             max_attempts=100,
                                                             use_image_if_no_bounding_boxes=False)
 
 
     new_image = tf.slice(image, im_box_begin, im_box_size)
+    
+    im_box_rank2 = tf.squeeze(im_box, axis=0) #[1 1 4] -> [1 4]
+    im_box_rank1 = tf.squeeze(im_box) #[1 1 4] -> [4]
 
-    im_box_rank2 = tf.squeeze(im_box, axis=[0])
-    im_box_rank1 = tf.squeeze(im_box)
-
-    boxlist, inside_window_ids = _prune_completely_outside_window(bbox, im_box_rank1)
-    overlapping_boxlist, keep_ids = _prune_non_overlapping_boxes(boxlist, im_box_rank2, random_option)
+    #boxlist, inside_window_mask = _prune_completely_outside_window(bbox, im_box_rank1)
+    overlapping_boxlist, keep_mask = _prune_non_overlapping_boxes(bbox, im_box_rank2, tf.reduce_min(random_option))
 
     new_bbox = _change_coordinate_frame(overlapping_boxlist, im_box_rank1)
     new_bbox = tf.clip_by_value(new_bbox, clip_value_min=0.0, clip_value_max=1.0)
     
-    kpt_vis_of_boxes_inside_window = tf.gather(class_id, inside_window_ids)
-    kpt_vis_of_boxes_completely_inside_window = tf.gather(kpt_vis_of_boxes_inside_window, keep_ids)
+    #new_label = tf.boolean_mask(class_id, inside_window_mask)
+    new_label = tf.boolean_mask(class_id, keep_mask)
 
-    return new_image, new_bbox, kpt_vis_of_boxes_completely_inside_window
+    return new_image, new_bbox, new_label
 
 def colorJitter(image, p = 1.0):
     if tf.random.uniform([], minval=0, maxval=1) > p:
         return image
 
-    if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_brightness(image, 0.125)
-    if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_contrast(image, 0.5, 1.5)
-    if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_hue(image, 0.05)
-    if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.image.random_saturation(image, 0.5, 1.5)
-    if tf.random.uniform([], minval=0, maxval=1) < p:
-        image = tf.tile(tf.image.rgb_to_grayscale(image), [1,1,3])
+    image = tf.image.random_brightness(image, 0.125)
+    image = tf.image.random_contrast(image, 0.5, 1.5)
+    image = tf.image.random_hue(image, 0.05)
+    image = tf.image.random_saturation(image, 0.5, 1.5)
     return image
 
 
@@ -155,7 +142,7 @@ def mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_t
     return images, tf.concat([bboxes_one, bboxes_two], 1), tf.concat([classes_one, classes_two], 1)
 
 
-def randomExpand(image, bbox, expandMax=1.5, p = 1.0):
+def randomExpand(image, bbox, expandMax=0.6, p = 1.0):
     if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, bbox
         

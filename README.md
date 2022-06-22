@@ -16,5 +16,3 @@ This repo is Tensorflow2/Keras implementation of MobileNetV3 and MobileDet SSD L
 2. MobileDets: Searching for Object Detection Architectures for Mobile Accelerators https://arxiv.org/abs/2004.14525
 
 3. Generalized Focal Loss: Generalized Focal Loss: Learning Qualified and Distributed Bounding Boxes for Dense Object Detection https://arxiv.org/abs/2006.04388v1
-### Code Ref
-1. TFOD https://github.com/tensorflow/tensorflow

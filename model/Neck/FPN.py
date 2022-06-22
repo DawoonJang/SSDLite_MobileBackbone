@@ -1,11 +1,13 @@
 import tensorflow as tf
-from model.customLayer import ReLU6, _Conv, _SeparableDepthwiseConv, WeightedSum, _IBN
+from model.customLayer import ReLU6, _Conv, _DeptwiseConv, WeightedSum, _IBN
 
 def FPN(inputs, config=None):
     config_dict = {
-        'reg': config["model_config"]["neck"]["regularization"],
-        'trainable': not config["model_config"]["neck"]["isFreeze"]
-        }
+        'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["neck"]["regularization"]),
+        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
+        'trainable':not config["model_config"]["backbone"]["isFreeze"],
+        'use_bias':False
+    }
 
     P5 = _Conv(inputs[-1],  #10
             filters=config["model_config"]["neck"]["filters"], 

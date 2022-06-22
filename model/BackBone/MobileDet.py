@@ -9,9 +9,10 @@ def MobileDetCPU(x, config=None):
     alpha=config["model_config"]["backbone"]["width_multiplier"]
     
     conf_dict = {
-        'reg': config["model_config"]["backbone"]["regularization"],
+        'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["backbone"]["regularization"]),
+        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
         'trainable':not config["model_config"]["backbone"]["isFreeze"],
-        'dropout': config["model_config"]["backbone"]["dropout"]
+        'use_bias':False
     }
 
     x=_Conv(x, filters=_depth(16*alpha), kernel_size=3, strides=2, padding='same', use_bias=False, activation=HSwish6, prefix='Initial', **conf_dict)
@@ -51,9 +52,10 @@ def MobileDetGPU(x, config=None):
     alpha=config["model_config"]["backbone"]["width_multiplier"]
     
     conf_dict = {
-        'reg': config["model_config"]["backbone"]["regularization"],
+        'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["backbone"]["regularization"]),
+        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
         'trainable':not config["model_config"]["backbone"]["isFreeze"],
-        'dropout': config["model_config"]["backbone"]["dropout"]
+        'use_bias':False
     }
 
     x=_Conv(x, filters=_depth(32*alpha), kernel_size=3, strides=2, padding='same', use_bias=False, activation=ReLU6, prefix='Initial', **conf_dict)
