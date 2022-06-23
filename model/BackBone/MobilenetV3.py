@@ -9,7 +9,7 @@ def MobileNetV3Small(x, config=None):
     alpha=config["model_config"]["backbone"]["width_multiplier"]
     conf_dict = {
         'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["backbone"]["regularization"]),
-        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
+        'kernel_initializer': tf.initializers.TruncatedNormal(mean=0.0, stddev=0.03),
         'trainable':not config["model_config"]["backbone"]["isFreeze"],
         'use_bias':False
     }
@@ -49,7 +49,7 @@ def MobileNetV3Large(x, config=None):
     alpha=config["model_config"]["backbone"]["width_multiplier"]
     conf_dict = {
         'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["backbone"]["regularization"]),
-        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
+        'kernel_initializer': tf.initializers.TruncatedNormal(mean=0.0, stddev=0.03),
         'trainable':not config["model_config"]["backbone"]["isFreeze"],
         'use_bias':False
     }

@@ -37,12 +37,6 @@ def main(_argv):
     tf.config.optimizer.set_jit("autoclustering")
     tf.random.set_seed(22)
 
-    if FLAGS.fp16:
-        logging.info('Training Precision: FP16')
-        tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
-    else:
-        logging.info('Training Precision: FP32')
-    
     logging.info('Training model: {}'.format(FLAGS.model))
     if FLAGS.model == 'MobileNetV3':
         modelName = "MobileNetV3_PFH_SSD"
@@ -64,13 +58,19 @@ def main(_argv):
         config['training_config']['num_classes'] = 80
         val_file = "data/coco_val2017.json"
 
+    optimizer = GCSGD(momentum=0.9, nesterov=False)
+    if FLAGS.fp16:
+        logging.info('Training Precision: FP16')
+        tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
+        optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
+    else:
+        logging.info('Training Precision: FP32')
+
     ######################################### Compile
     config['modelName'] = modelName
     model = ModelBuilder(config = config)
     #model.load_weights("logs/_epoch600_mAP0.132").expect_partial()
 
-    optimizer = GCSGD(momentum=0.9, nesterov=False)
-    #optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
     model.summary(expand_nested=True, show_trainable=True)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])

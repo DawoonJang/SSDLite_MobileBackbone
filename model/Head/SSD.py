@@ -27,15 +27,14 @@ def SSD(x, config=None):
 
     box_config_dict = {
         'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["head"]["regularization"]),
-        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
-        #'bias_initializer': tf.constant_initializer(0.0),
+        'kernel_initializer': tf.initializers.TruncatedNormal(mean=0.0, stddev=0.03),
         'trainable':not config["model_config"]["head"]["isFreeze"],
         'use_bias':True
     }
 
     clf_config_dict = {
         'kernel_regularizer': tf.keras.regularizers.l2(config["model_config"]["head"]["regularization"]),
-        'kernel_initializer': tf.initializers.RandomNormal(mean=0.0, stddev=0.03),
+        'kernel_initializer': tf.initializers.TruncatedNormal(mean=0.0, stddev=0.03),
         'bias_initializer': tf.constant_initializer(-4.6),
         'trainable':not config["model_config"]["head"]["isFreeze"],
         'use_bias':True,
