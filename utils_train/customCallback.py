@@ -3,7 +3,9 @@ import numpy as np
 import json
 import os
 
-from tqdm import tqdm
+import contextlib
+import io
+
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
@@ -92,8 +94,9 @@ class Logger(tf.keras.callbacks.Callback):
                 ], axis=-1)
             #####
             
+            temp_dict = {}
             for box, int_id, score in zip(boxes, classes, scores):
-                temp_dict = coco_eval_dict.copy()
+                #temp_dict = coco_eval_dict.copy()
                 try:
                     temp_dict['image_id'] = int(image_id)
                 except:
@@ -157,6 +160,11 @@ class Logger(tf.keras.callbacks.Callback):
             cocoEval.evaluate()
             cocoEval.accumulate()
             cocoEval.summarize()
+
+            #with contextlib.redirect_stdout(io.StringIO()):
+            #    cocoEval.summarize()
+            #info += redirect_string.getvalue()
+
 
             self.model.save_weights(os.path.join(self.weightsave_path, "weights", "_epoch"+str(epoch+1)+"_mAP"+'%.3f'%cocoEval.stats[0]))
 
