@@ -1,6 +1,6 @@
-# MobileNetV3-MobileDet-SSD-Lite
+# SSDLite with MobileNetV3 and MobileDet 
 This repo is Tensorflow2/Keras implementation of MobileNetV3 and MobileDet SSD Lite. I found that strong data augmentation such as mosaic, mixup and color jitter caused in poor mAP, Backbone network for mobile and lite version of ssd might be too small to cover it.
-There are some differences from the original in that I use upperbounded ReLU by6 (ReLU6) in backbone instead of ReLU and First activation function of SE modules follows inverted bottleneck block's activation that it is included in.
+There are some differences from the original in that I use upperbounded ReLU by 6 (ReLU6) in backbone instead of ReLU and First activation function of SE modules follows inverted bottleneck block's activation that it is included in.
 
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
