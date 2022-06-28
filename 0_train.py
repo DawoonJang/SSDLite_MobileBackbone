@@ -71,7 +71,6 @@ def main(_argv):
     model = ModelBuilder(config = config)
     #model.load_weights("logs/_epoch600_mAP0.132").expect_partial()
 
-
     model.summary(expand_nested=True, show_trainable=True)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
     model.fit(train_dataset.dataset,

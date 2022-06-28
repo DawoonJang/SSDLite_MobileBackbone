@@ -94,9 +94,8 @@ class Logger(tf.keras.callbacks.Callback):
                 ], axis=-1)
             #####
             
-            temp_dict = {}
             for box, int_id, score in zip(boxes, classes, scores):
-                #temp_dict = coco_eval_dict.copy()
+                temp_dict = coco_eval_dict.copy()
                 try:
                     temp_dict['image_id'] = int(image_id)
                 except:
