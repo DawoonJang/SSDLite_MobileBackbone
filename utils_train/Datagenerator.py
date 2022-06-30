@@ -92,9 +92,9 @@ class Dataset_COCO(DatasetBuilder):
         classes = tf.cast(samples["objects"]["label"], dtype=tf.int32)
         bbox = samples["objects"]["bbox"]
         ####################################
-        noCrowMask =  tf.logical_not(samples["objects"]["is_crowd"])
-        classes = tf.boolean_mask(classes, noCrowMask)
-        bbox = tf.boolean_mask(bbox, noCrowMask)
+        #noCrowMask =  tf.logical_not(samples["objects"]["is_crowd"])
+        #classes = tf.boolean_mask(classes, noCrowMask)
+        #bbox = tf.boolean_mask(bbox, noCrowMask)
         ####################################
         validboxMask = tf.reduce_all(bbox[..., 2:] > bbox[..., :2], -1)
         classes = tf.boolean_mask(classes, validboxMask)

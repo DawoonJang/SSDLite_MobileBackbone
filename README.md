@@ -3,6 +3,12 @@ This repo is Tensorflow2/Keras implementation of MobileNetV3 and MobileDet SSD L
 
 There are some differences from the original in that I use upperbounded ReLU by 6 (ReLU6) in backbone instead of ReLU and First activation function of SE modules follows inverted bottleneck block's activation that it is included in.
 
+## Performance
+All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
+Model | Lr schedule  | max learning rate | warmup epochs | kernel regulaization | optimizer | mAP |
+--- | --- | --- | --- |--- |--- |--- |--- |--- |--- |--- |---
+MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 4 | 1e-5 | Gradient Centralization SGDM | 15.1 |
+
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
 2. [22/06/16] Update: Mosaic
