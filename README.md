@@ -6,10 +6,10 @@ There are some differences from the original in that I use upperbounded ReLU by 
 ## Performance
 All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
 
-Model | Lr schedule  | max learning rate | warmup epochs | total epochs | kernel regulaization | optimizer | Params | mAP |
-| -------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |------------- |
-MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | 1.7M | 15.1 |
-
+Model | Lr schedule  | max learning rate | BatchSize | warmup epochs | total epochs | kernel regulaization | optimizer | Params | mAP |
+| ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |------------- |
+MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | 1.7M | 15.1 |
+MobileNetV3Large SSDLite | CosineDecay with warmup | 5e-2 | 64 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | 3.2M | 21.1 |
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
 2. [22/06/16] Update: Mosaic
