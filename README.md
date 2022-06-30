@@ -9,6 +9,11 @@ Model | Lr schedule  | max learning rate | warmup epochs | total epochs | kernel
 --- | --- | --- | --- |--- |--- |--- |--- |--- |--- |--- |---
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | 15.1 |
 
+| First Header  | Second Header |
+| ------------- | ------------- |
+| Content Cell  | Content Cell  |
+| Content Cell  | Content Cell  |
+
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
 2. [22/06/16] Update: Mosaic
