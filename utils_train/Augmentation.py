@@ -7,15 +7,15 @@ def randomResize(image, boxes, targetH, targetW, p = 1.0):
         image_shape = tf.cast(tf.shape(img), tf.float32)
         image_height, image_width = image_shape[0], image_shape[1]
 
+        img = tf.image.resize_with_pad(img, h, w)
+        
         h, w = tf.cast(h, dtype=tf.float32), tf.cast(w, dtype=tf.float32)
         resize_coef = tf.math.minimum(h / image_height, w / image_width)
 
-        #img = tf.image.resize_with_pad(img, h, w)
-
         ##
-        img = tf.cond(resize_coef < 1, 
-                        lambda: tf.image.resize_with_pad(img, h, w, tf.image.ResizeMethod.AREA),
-                        lambda: tf.image.resize_with_pad(img, h, w, tf.image.ResizeMethod.BILINEAR))
+        #img = tf.cond(resize_coef < 1, 
+        #                lambda: tf.image.resize_with_pad(img, h, w, tf.image.ResizeMethod.AREA),
+        #                lambda: tf.image.resize_with_pad(img, h, w, tf.image.ResizeMethod.BILINEAR))
         ##
 
         resized_height, resized_width = image_height * resize_coef, image_width * resize_coef
@@ -28,15 +28,15 @@ def randomResize(image, boxes, targetH, targetW, p = 1.0):
 
     def _dont_keep_aspect_ration(img, boxes, h, w):
         ##
-        image_shape = tf.cast(tf.shape(img), tf.float32)
+        '''image_shape = tf.cast(tf.shape(img), tf.float32)
         image_height, image_width = image_shape[0], image_shape[1]
         resize_coef = tf.math.minimum(h / image_height, w / image_width)
 
         img = tf.cond(resize_coef < 1, 
                         lambda: tf.image.resize(img, (h, w), tf.image.ResizeMethod.AREA),
-                        lambda: tf.image.resize(img, (h, w), tf.image.ResizeMethod.BILINEAR))
+                        lambda: tf.image.resize(img, (h, w), tf.image.ResizeMethod.BILINEAR))'''
         ##
-        #img = tf.image.resize(img, (h, w), antialias=True)
+        img = tf.image.resize(img, (h, w), antialias=True)
         return img, boxes
 
     if tf.random.uniform([], minval=0, maxval=1) < p:
