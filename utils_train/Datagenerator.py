@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
+import glob
 
 from utils_train.Encoder import LabelEncoder
 #from utils_train.utils import *
@@ -33,7 +34,6 @@ class DatasetBuilder():
 
         if self.mode == 'train' or self.mode == 'bboxtest':
             image, bbox, classes  = randomCrop(image, bbox, classes, p = 0.85)
-            #image, bbox           = randomExpand(image, bbox, 0.5)
             image, bbox           = randomResize(image, bbox, self._target_size, self._target_size, p = 0.0)
             image, bbox           = flipHorizontal(image, bbox, p = 0.5)
             #image                 = colorJitter(image, p = 0.5)
@@ -92,9 +92,9 @@ class Dataset_COCO(DatasetBuilder):
         classes = tf.cast(samples["objects"]["label"], dtype=tf.int32)
         bbox = samples["objects"]["bbox"]
         ####################################
-        #noCrowMask =  tf.logical_not(samples["objects"]["is_crowd"])
-        #classes = tf.boolean_mask(classes, noCrowMask)
-        #bbox = tf.boolean_mask(bbox, noCrowMask)
+        noCrowMask =  tf.logical_not(samples["objects"]["is_crowd"])
+        classes = tf.boolean_mask(classes, noCrowMask)
+        bbox = tf.boolean_mask(bbox, noCrowMask)
         ####################################
         validboxMask = tf.reduce_all(bbox[..., 2:] > bbox[..., :2], -1)
         classes = tf.boolean_mask(classes, validboxMask)
@@ -191,8 +191,8 @@ class Dataset_Pascal(DatasetBuilder):
     def __len__(self):
         return int(117266/self._batch_size)
         
-class Datase_Custom(DatasetBuilder):
-    def __init__(self,  config, mode='train'):
+class Dataset_Custom(DatasetBuilder):
+    def __init__(self, config, mode='train'):
         super().__init__(config, mode)
 
     def _prepare_proto(self, samples):
@@ -205,8 +205,7 @@ class Datase_Custom(DatasetBuilder):
             'image/object/class/label': tf.io.VarLenFeature(tf.int64),
         }
 
-        parsed_example = tf.io.parse_single_example(samples,
-                                                    feature_description)
+        parsed_example = tf.io.parse_single_example(samples, feature_description)
         classes = tf.sparse.to_dense(parsed_example['image/object/class/label'])
         classes = tf.cast(classes, tf.int32)-1
 
@@ -224,16 +223,13 @@ class Datase_Custom(DatasetBuilder):
         return image, bbox, classes, None
    
     def _build_dataset(self):
-        self._tfrecords = tf.data.Dataset.list_files("data/P.tfrecord")
+        self._tfrecords = tf.data.Dataset.list_files(glob.glob("./train/*"))
         if self.mode == 'train':
-            options = tf.data.Options()
-            options.deterministic = False
             self._dataset = (
                 self._tfrecords.interleave(tf.data.TFRecordDataset,
                                             cycle_length=256,
                                             block_length=16,
                                             num_parallel_calls=tf.data.AUTOTUNE)
-                .with_options(options)
                 .shuffle(8*self._batch_size)
                 .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
                 .batch(batch_size=self._batch_size, drop_remainder = False)
@@ -246,7 +242,7 @@ class Datase_Custom(DatasetBuilder):
                                             cycle_length=256,
                                             block_length=16,
                                             num_parallel_calls=tf.data.AUTOTUNE)
-                .map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+                .map(self._preprocess_before_batch, num_parallel_calls=tf.data.AUTOTUNE)
             )
 
 class Dataset_COCO_Temp(DatasetBuilder):
