@@ -1,5 +1,6 @@
 
 import tensorflow as tf
+from absl import app, logging, flags
 
 _policy = tf.keras.mixed_precision.global_policy()
 
@@ -28,7 +29,7 @@ class BalanceL1(tf.losses.Loss):
         return tf.reduce_sum(loss, axis=-1)
 
 class FocalLoss(tf.losses.Loss):
-    def __init__(self, alpha, gamma, mode = "normal"):
+    def __init__(self, alpha, gamma):
         super().__init__(reduction="none", name="FocalLoss")
         self._alpha = alpha
         self._gamma = gamma
@@ -51,14 +52,32 @@ class QFocalLoss(tf.losses.Loss):
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true, logits=y_pred)
         pred_prob = tf.sigmoid(y_pred)
 
-        loss = tf.pow(tf.abs(y_true - pred_prob), self._gamma) * cross_entropy
+        alpha = y_true*self._alpha + (1-y_true)*(1-self._alpha)
+        loss = alpha*tf.pow(tf.abs(y_true - pred_prob), self._gamma) * cross_entropy
         return tf.reduce_sum(loss, axis=-1)
 
 class MultiBoxLoss(tf.losses.Loss):
     def __init__(self, config):
         super().__init__(reduction="none", name="MultiBoxLoss")
-        self._clf_loss = FocalLoss(alpha = config['training_config']["ClfLoss"]["Alpha"], gamma=config['training_config']["ClfLoss"]["Gamma"])
-        self._box_loss = SmoothL1(delta = config['training_config']["BoxLoss"]["Delta"])
+        if config['training_config']['ClfLoss']['LossFunction'].lower() == 'focal':
+            self._clf_loss = FocalLoss(alpha = config['training_config']["ClfLoss"]["Alpha"], gamma=config['training_config']["ClfLoss"]["Gamma"])
+            logging.info('Classifciation Loss: Focal Loss')
+            self._IOUsmoothed = False
+        elif config['training_config']['ClfLoss']['LossFunction'].lower() == 'qfocal':
+            self._clf_loss = QFocalLoss(alpha = config['training_config']["ClfLoss"]["Alpha"], gamma=config['training_config']["ClfLoss"]["Gamma"])
+            logging.info('Classifciation Loss: Quality Focal Loss')
+            self._IOUsmoothed = True
+        else:
+            raise ValueError("Not Emplemented Clf loss")
+
+        if config['training_config']['BoxLoss']['LossFunction'].lower() == 'smoothl1':
+            self._reg_loss = SmoothL1(delta = config['training_config']["BoxLoss"]["Delta"])
+            logging.info('Regression Loss: SmoothL1 Loss')
+        elif config['training_config']['BoxLoss']['LossFunction'].lower() == 'balancel1':
+            logging.info('Regression Loss: BalanceL1 Loss')
+            self._reg_loss = BalanceL1(delta = config['training_config']["BoxLoss"]["Delta"])
+        else:
+            raise ValueError("Not Emplemented Reg loss")
 
         self._num_classes = config['training_config']["num_classes"]
         self._cls_loss_weight = config['training_config']["ClfLoss"]["Weight"]
@@ -72,16 +91,14 @@ class MultiBoxLoss(tf.losses.Loss):
             tf.cast(y_true[..., 4], dtype=tf.int32),
             depth=self._num_classes,
             dtype=_policy.compute_dtype)
-        cls_predictions = y_pred[..., 4:]
-        
-        iou_label = y_true[..., 5:6]
+        cls_labels = tf.where(self._IOUsmoothed, cls_labels*y_true[..., 5:6], cls_labels)
+        cls_predictions = y_pred[..., 4:]        
 
         positive_mask = tf.cast(tf.greater(y_true[..., 4], -1.0), _policy.compute_dtype)
         ignore_mask = tf.equal(y_true[..., 4], -2.0)
 
         clf_loss = self._clf_loss(cls_labels, cls_predictions)
-        #clf_loss = self._clf_loss(cls_labels*iou_label, cls_predictions)
-        box_loss = self._box_loss(box_labels, box_predictions)
+        box_loss = self._reg_loss(box_labels, box_predictions)
         
         clf_loss = tf.where(ignore_mask, 0.0, clf_loss)
         box_loss = tf.where(tf.equal(positive_mask, 1.0), box_loss, 0.0)

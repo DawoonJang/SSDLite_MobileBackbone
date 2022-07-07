@@ -194,7 +194,7 @@ class CallbackBuilder():
                                         warmup_steps = 4,
                                         total_steps = config["training_config"]["epochs"]))
 
-        self.TB = tf.keras.callbacks.TensorBoard(log_dir='logs/', profile_batch='500, 540')
+        #self.TB = tf.keras.callbacks.TensorBoard(log_dir='logs/', profile_batch='500, 540')
     def get_callbacks(self):
         callbacks_list = [self.Logger, self.LrScheduler] 
 

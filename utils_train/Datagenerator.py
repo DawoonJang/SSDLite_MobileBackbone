@@ -49,8 +49,7 @@ class DatasetBuilder():
             classes = -1*tf.ones([1], tf.int32)
 
         if self.mode == 'train':
-            return (image/127.5) -1.0,  self._label_encoder._encode_sample(bbox, classes)#, originalShape
-            #return (image/127.5) -1.0,  bbox, classes
+            return (image/127.5) -1.0,  self._label_encoder._encode_sample(bbox, classes)
         elif self.mode == 'bboxtest':
             return image, bbox, classes
         else:
