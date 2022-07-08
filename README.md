@@ -11,7 +11,7 @@ Model | Lr schedule  | max learning rate | BatchSize | warmup epochs | total epo
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 1.7M | FP32 | 15.2 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP32 | 15.6 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP16 | 15.5 |
-MobileNetV3Large SSDLite | CosineDecay with warmup | 5e-2 | 64 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 3.2M | 21.1 |
+MobileNetV3Large SSDLite | CosineDecay with warmup | 5e-2 | 64 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 3.2M | FP32 | 21.1 |
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
 2. [22/06/16] Update: Mosaic
