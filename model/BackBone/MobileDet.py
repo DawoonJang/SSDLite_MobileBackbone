@@ -15,7 +15,7 @@ def MobileDetCPU(x, config=None):
         'use_bias':False
     }
 
-    x=_Conv(x, filters=_depth(16*alpha), kernel_size=3, strides=2, padding='same', use_bias=False, activation=HSwish6, prefix='Initial', **conf_dict)
+    x=_Conv(x, filters=_depth(16*alpha), kernel_size=3, strides=2, padding='same', activation=HSwish6, prefix='Initial', **conf_dict)
     x=_IBN(x, expansion=1, filters=_depth(8*alpha), kernel_size=3, strides=1, activation=ReLU6, block_id=0, **conf_dict)
 
     x=_IBN(x, expansion=4, filters=_depth(16*alpha), kernel_size=3, strides=2, activation=HSwish6, block_id=1, **conf_dict)
