@@ -18,7 +18,7 @@ os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 
 flags.DEFINE_boolean(
     name='fp16',
-    default=False,
+    default=True,
     help='Mixed Precision')
 
 flags.DEFINE_string(

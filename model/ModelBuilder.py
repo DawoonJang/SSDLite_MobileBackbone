@@ -108,10 +108,10 @@ class ModelBuilder(tf.keras.Model):
 
             loss=cls_loss+loc_loss
             _scaled_losses=get_scaled_losses(loss, self.losses)
-            #_scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)#
+            _scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)#
         
         scaled_gradients = tape.gradient(_scaled_losses, self.trainable_variables)
-        #scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)#
+        scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)#
         self.optimizer.apply_gradients(zip(scaled_gradients, self.trainable_variables))
 
         loss_dict={
