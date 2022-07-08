@@ -7,7 +7,7 @@ There are some differences from the original in that I use upperbounded ReLU by 
 All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
 
 Model | Lr schedule  | max learning rate | BatchSize | warmup epochs | total epochs | kernel regulaization | optimizer | Loss | Params | Precision | mAP |
-| ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |------------- |------------- |
+| ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |------------- |------------- |------------- |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 1.7M | FP32 | 15.2 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP32 | 15.6 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP16 | 15.5 |
