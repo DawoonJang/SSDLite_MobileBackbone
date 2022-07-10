@@ -9,9 +9,11 @@ All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
 Model | Lr schedule  | max learning rate | BatchSize | warmup epochs | total epochs | kernel regulaization | optimizer | Loss | Params | Precision | mAP |
 | ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |------------- |------------- |------------- |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 1.7M | FP32 | 15.2 |
+MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 1.7M | FP16 | 15.2 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP32 | 15.6 |
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP16 | 15.5 |
 MobileNetV3Large SSDLite | CosineDecay with warmup | 5e-2 | 64 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 3.2M | FP32 | 21.1 |
+MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 3.2M | FP16 | 21.1 |
 MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 3.2M | FP16 | 21.4 |
 
 ## Update

@@ -14,7 +14,6 @@ from utils_train.Datagenerator import Dataset_COCO, Dataset_Pascal, Dataset_COCO
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
-#os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 flags.DEFINE_boolean(
     name='fp16',
@@ -36,8 +35,9 @@ FLAGS = flags.FLAGS
 def main(_argv):
     tf.config.optimizer.set_jit("autoclustering")
     tf.random.set_seed(22)
+    logging.set_verbosity(logging.WARNING)
 
-    logging.info('Training model: {}'.format(FLAGS.model))
+    logging.warning('Training model: {}'.format(FLAGS.model))
     if FLAGS.model == 'MobileNetV3':
         modelName = "MobileNetV3_PFH_SSD"
     elif FLAGS.model == 'MobileDet':
@@ -46,7 +46,7 @@ def main(_argv):
     with open(os.path.join("model/0_Config", modelName+".json"), "r") as config_file:
         config = json.load(config_file)
     
-    logging.info('Training dataset: {}'.format(FLAGS.dataset))
+    logging.warning('Training dataset: {}'.format(FLAGS.dataset))
     if FLAGS.dataset == 'pascal':
         train_dataset = Dataset_Pascal(config, mode = 'train')
         test_dataset = Dataset_Pascal(config, mode = 'validation')
@@ -60,18 +60,18 @@ def main(_argv):
 
     optimizer = GCSGD(momentum=0.9, nesterov=False)
     if FLAGS.fp16:
-        logging.info('Training Precision: FP16')
+        logging.warning('Training Precision: FP16')
         tf.keras.mixed_precision.set_global_policy(tf.keras.mixed_precision.Policy('mixed_float16'))
         optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
     else:
-        logging.info('Training Precision: FP32')
+        logging.warning('Training Precision: FP32')
 
     ######################################### Compile
     config['modelName'] = modelName
     model = ModelBuilder(config = config)
     #model.load_weights("logs/_epoch600_mAP0.132").expect_partial()
 
-    model.summary(expand_nested=True, show_trainable=True)
+    print(model)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
     model.fit(train_dataset.dataset,
             epochs=config["training_config"]["epochs"],

@@ -61,20 +61,20 @@ class MultiBoxLoss(tf.losses.Loss):
         super().__init__(reduction="none", name="MultiBoxLoss")
         if config['training_config']['ClfLoss']['LossFunction'].lower() == 'focal':
             self._clf_loss = FocalLoss(alpha = config['training_config']["ClfLoss"]["Alpha"], gamma=config['training_config']["ClfLoss"]["Gamma"])
-            logging.info('Classifciation Loss: Focal Loss')
+            logging.warning('Classifciation Loss: Focal Loss')
             self._IOUsmoothed = False
         elif config['training_config']['ClfLoss']['LossFunction'].lower() == 'qfocal':
             self._clf_loss = QFocalLoss(alpha = config['training_config']["ClfLoss"]["Alpha"], gamma=config['training_config']["ClfLoss"]["Gamma"])
-            logging.info('Classifciation Loss: Quality Focal Loss')
+            logging.warning('Classifciation Loss: Quality Focal Loss')
             self._IOUsmoothed = True
         else:
             raise ValueError("Not Emplemented Clf loss")
 
         if config['training_config']['BoxLoss']['LossFunction'].lower() == 'smoothl1':
             self._reg_loss = SmoothL1(delta = config['training_config']["BoxLoss"]["Delta"])
-            logging.info('Regression Loss: SmoothL1 Loss')
+            logging.warning('Regression Loss: SmoothL1 Loss')
         elif config['training_config']['BoxLoss']['LossFunction'].lower() == 'balancel1':
-            logging.info('Regression Loss: BalanceL1 Loss')
+            logging.warning('Regression Loss: BalanceL1 Loss')
             self._reg_loss = BalanceL1(delta = config['training_config']["BoxLoss"]["Delta"])
         else:
             raise ValueError("Not Emplemented Reg loss")
