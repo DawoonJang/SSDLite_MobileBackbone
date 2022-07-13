@@ -3,7 +3,7 @@ This repo is Tensorflow2/Keras implementation of MobileNetV3 and MobileDet SSD L
 
 There are some differences from the original in that I used upperbounded ReLU by 6 (ReLU6) in backbone instead of ReLU and First activation function of SE modules follows inverted bottleneck block's activation that it is included in.
 
-Mixed precision training could reduce training time by 60% retaining it mAP performance
+Mixed precision training could reduce training time by 60% retaining mAP performance
 
 ## Performance
 All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
