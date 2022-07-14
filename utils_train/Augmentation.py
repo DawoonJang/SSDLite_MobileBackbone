@@ -147,17 +147,6 @@ def colorJitter(image, p = 1.0):
     image = tf.image.random_saturation(image, 0.5, 1.5)
     return image
 
-
-def mixUp(images_one, images_two, bboxes_one, bboxes_two, classes_one, classes_two):
-    def _sample_beta_distribution(size, concentration_0=0.5, concentration_1=0.5):
-        gamma_1_sample = tf.random.gamma(shape=[size], alpha=concentration_1)
-        gamma_2_sample = tf.random.gamma(shape=[size], alpha=concentration_0)
-        return gamma_1_sample / (gamma_1_sample + gamma_2_sample)
-
-    images = images_one * 0.5 + images_two * (1 - 0.5)
-    return images, tf.concat([bboxes_one, bboxes_two], 1), tf.concat([classes_one, classes_two], 1)
-
-
 def randomExpand(image, bbox, expandMax=0.6, p = 1.0):
     if tf.random.uniform([], minval=0, maxval=1) > p:
         return image, bbox

@@ -44,10 +44,7 @@ class DecodePredictions(tf.keras.layers.Layer):
     def _combined_nms(self, predictions):
         scores=tf.nn.sigmoid(predictions[..., 4:])
 
-        if self._mode=='smoothl1':
-            boxes_decoded=self._decode_box_predictions(predictions[..., :4])
-        else:
-            boxes_decoded=self._decode_box_predictions(predictions[..., :4])
+        boxes_decoded=self._decode_box_predictions(predictions[..., :4])
 
         if len(boxes_decoded.get_shape().as_list()) == 3:
             boxes_decoded=tf.expand_dims(boxes_decoded, axis=2)
@@ -109,10 +106,10 @@ class ModelBuilder(tf.keras.Model):
 
             loss=cls_loss+loc_loss
             _scaled_losses=get_scaled_losses(loss, self.losses)
-            _scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)#
+            _scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)
         
         scaled_gradients = tape.gradient(_scaled_losses, self.trainable_variables)
-        scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)#
+        scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
         self.optimizer.apply_gradients(zip(scaled_gradients, self.trainable_variables))
 
         loss_dict={

@@ -14,6 +14,7 @@ MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5
 MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 1.7M | FP16 | 15.5 |
 MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 3.2M | FP16 | 21.1 |
 MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 | 3.2M | FP16 | 21.4 |
+MobileDet SSDLite | CosineDecay with warmup | 2e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 | 4.1M | FP16 | 22.5 |
 
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training

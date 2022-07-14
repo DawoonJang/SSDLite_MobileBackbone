@@ -27,7 +27,7 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     name='model',
-    default='MobileNetV3',
+    default='MobileDet',
     help='Model to train')
 
 FLAGS = flags.FLAGS

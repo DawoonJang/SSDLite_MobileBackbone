@@ -19,6 +19,7 @@ class BalanceL1(tf.losses.Loss):
         self._delta = delta
         self._alpha = alpha
         self._gamma = gamma
+
     def call(self, y_true, y_pred):
         difference = tf.abs(y_true - y_pred)
         
