@@ -48,7 +48,7 @@
 
         "BoxLoss": 
         {
-            "LossFunction": "SmoothL1",
+            "LossFunction": "BalanceL1",
             "Delta": 1.0,
             "Weight" : 1.0
         },

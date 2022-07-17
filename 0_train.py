@@ -69,7 +69,7 @@ def main(_argv):
     ######################################### Compile
     config['modelName'] = modelName
     model = ModelBuilder(config = config)
-    #model.load_weights("logs/_epoch600_mAP0.132").expect_partial()
+    #model.load_weights("logs/_epoch373_mAP0.201").expect_partial()
 
     print(model)
     model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
