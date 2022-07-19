@@ -16,11 +16,6 @@ def get_scaled_losses(loss, regularization_losses=None):
         loss += tf.math.add_n(regularization_losses)
     return loss
 
-def reduce_losses(losses_dict):
-    for key, value in losses_dict.items():
-        losses_dict[key] = tf.reduce_mean(value)
-    return losses_dict
-
 class DecodePredictions(tf.keras.layers.Layer):
     def __init__(self, config, **kwargs):
         super(DecodePredictions, self).__init__(**kwargs)
@@ -87,7 +82,9 @@ class ModelBuilder(tf.keras.Model):
                         name='Detector')
 
         self.config=config
-         
+        self.total_loss_tracker = tf.keras.metrics.Mean(name="TotalL")
+        self.class_loss_tracker = tf.keras.metrics.Mean(name="ClassL")
+        self.box_loss_tracker = tf.keras.metrics.Mean(name="BoxL")
 
     def compile(self, loss, optimizer, metrics=None, **kwargs):
         super().compile(optimizer=optimizer, metrics=metrics, **kwargs)
@@ -104,22 +101,26 @@ class ModelBuilder(tf.keras.Model):
             cls_loss=loss_values[0]    #[batch]
             loc_loss=loss_values[1]    #[batch]
 
-            loss=cls_loss+loc_loss
-            _scaled_losses=get_scaled_losses(loss, self.losses)
+            total_loss=cls_loss+loc_loss
+            _scaled_losses=get_scaled_losses(total_loss, self.losses)
             _scaled_losses=self.optimizer.get_scaled_loss(_scaled_losses)
         
         scaled_gradients = tape.gradient(_scaled_losses, self.trainable_variables)
         scaled_gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
         self.optimizer.apply_gradients(zip(scaled_gradients, self.trainable_variables))
 
+        self.class_loss_tracker.update_state(cls_loss)
+        self.box_loss_tracker.update_state(loc_loss)
+        self.total_loss_tracker.update_state(total_loss)
+
         loss_dict={
-                    'ClassL': cls_loss,
-                    'BoxL': loc_loss,
-                    'RegL': self.losses,
-                    'TotalL': loss
+                    'HeatL': self.class_loss_tracker.result(),
+                    'BoxL': self.box_loss_tracker.result(),
+                    'RegL': tf.reduce_mean(self.losses),
+                    'TotalL': self.total_loss_tracker.result()
                 }
         
-        return reduce_losses(loss_dict)
+        return loss_dict
 
     def test_step(self, data):
         images, y_true, _=data
@@ -129,15 +130,17 @@ class ModelBuilder(tf.keras.Model):
         cls_loss=loss_values[0]
         loc_loss=loss_values[1]
 
-        loss=cls_loss+loc_loss
+        self.class_loss_tracker.update_state(cls_loss)
+        self.box_loss_tracker.update_state(loc_loss)
+        self.total_loss_tracker.update_state(cls_loss+loc_loss)
 
         loss_dict={
-                    'ClassL': cls_loss,
-                    'BoxL': loc_loss,
-                    'TotalL': loss
+                    'HeatL': self.class_loss_tracker.result(),
+                    'BoxL': self.box_loss_tracker.result(),
+                    'TotalL': self.total_loss_tracker.result()
                 }
                     
-        return reduce_losses(loss_dict)
+        return loss_dict
 
     def predict_step(self, images):
         self._decode_predictions=DecodePredictions(self.config)  

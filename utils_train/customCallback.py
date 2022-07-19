@@ -59,6 +59,9 @@ class Logger(tf.keras.callbacks.Callback):
         if (isImprove or ((epoch + 1) % self._eval_interval == 0)) and epoch > 3:
             self._cocoeval(epoch)
 
+        self._train_summary.flush()
+        self._valid_summary.flush()
+        
     def accumulate_results(self, sample):
         images = sample[0]
         encoded_label = sample[1]
@@ -109,15 +112,14 @@ class Logger(tf.keras.callbacks.Callback):
     def _write_summaries(self, epoch, logs):
         with self._train_summary.as_default():
             with tf.name_scope('Loss'):
-                tf.summary.scalar(name="ClassL", data=logs["ClassL"], step=epoch)
-                tf.summary.scalar(name="BoxL", data=logs["BoxL"], step=epoch)
-                tf.summary.scalar(name="TotalL", data=logs["TotalL"], step=epoch)
-                tf.summary.scalar(name="RegL", data=logs["RegL"], step=epoch)
+                for keys in logs:
+                    if not keys.startswith('val_'):
+                        tf.summary.scalar(name=keys, data=logs[keys], step=epoch)
 
             with tf.name_scope('LearningRate'):
                 tf.summary.scalar(name="LearngingRate", data=self.model.optimizer.lr, step=epoch)
 
-            with tf.summary.record_if(epoch % self._eval_interval == 0):
+            with tf.summary.record_if(epoch % 100 == 0):
                 for layer in self.model.layers:
                     for weight in layer.weights:
                         weight_name = weight.name.replace(':', '_')
@@ -125,20 +127,15 @@ class Logger(tf.keras.callbacks.Callback):
 
         with self._valid_summary.as_default():
             with tf.name_scope('Loss'):
-                tf.summary.scalar(name="ClassL", data=logs["val_ClassL"], step=epoch)
-                tf.summary.scalar(name="BoxL", data=logs["val_BoxL"], step=epoch)
-                tf.summary.scalar(name="TotalL", data=logs["val_TotalL"], step=epoch)
-
-        self._train_summary.flush()
-        self._valid_summary.flush()
+                for keys in logs:
+                    if keys.startswith('val_'):
+                        tf.summary.scalar(name=keys[4:], data=logs[keys], step=epoch)
             
     def _write_mAP(self, scores, epoch):
         with self._valid_summary.as_default():
             with tf.name_scope('mAP'):
                 for key, value in scores.items():
                     tf.summary.scalar(name=key, data=value, step=epoch)
-
-        self._valid_summary.flush()
 
     def _cocoeval(self, epoch, catIds = None):
         self._processed_detections = []
