@@ -148,10 +148,12 @@ class ModelBuilder(tf.keras.Model):
         return self._decode_predictions(predictions)
 
     def __repr__(self, table=False):
-        if (table == True):
-                print('%25s | %16s | %16s | %16s | %16s | %6s | %6s' % (
-                    'Layer Name', 'Input Shape', 'Output Shape', 'Kernel Size', 'Filters', 'Strides', 'FLOPS'))
-                print('-' * 170)
+        print_str=''
+        if table:
+            print_str += '%25s | %16s | %20s | %10s | %16s | %6s | %6s\n' % (
+                'Layer Name', 'Input Shape', 'Output Shape', 'Kernel Size', 'Filters', 'Strides', 'FLOPS')
+            print_str += '-' * 170
+            print_str += '\n'
         t_flops = 0
         t_macc = 0
 
@@ -160,8 +162,6 @@ class ModelBuilder(tf.keras.Model):
             flops = 0
             macc = 0
             name = l.name
-
-            factor = 1000000
 
             if ('InputLayer' in str(l)):
                 i_shape = l.input.get_shape()[1:4].as_list()
@@ -188,15 +188,15 @@ class ModelBuilder(tf.keras.Model):
                 bflops = 1
                 for i in range(len(i_shape)):
                     bflops *= i_shape[i]
-                flops /= factor
+                flops = bflops
 
-            if ('Activation' in str(l) or 'activation' in str(l)):
+            if ('ReLU6' in str(l) or 'HSwish' in str(l)):
                 i_shape = l.input.get_shape()[1:4].as_list()
                 o_shape = l.output.get_shape()[1:4].as_list()
                 bflops = 1
                 for i in range(len(i_shape)):
                     bflops *= i_shape[i]
-                flops /= factor
+                flops = bflops
 
             if ('pool' in str(l) and ('Global' not in str(l))):
                 i_shape = l.input.get_shape()[1:4].as_list()
@@ -263,14 +263,14 @@ class ModelBuilder(tf.keras.Model):
             t_macc += macc
             t_flops += flops
 
-            if (table == True):
-                print('%25s | %16s | %16s | %16s | %16s | %6s | %5.4f' % (
-                    name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops))
-        t_flops = t_flops / factor
-
+            if table:
+                print_str += '%25s | %16s | %20s | %10s | %16s | %6s | %5.2f[M]\n' % (
+                    name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
 
         trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.trainable_weights])
         none_trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.non_trainable_weights])
         total_params = trainable_params+none_trainable_params
-        return 'Total Params: %6.3f[M]\n' % (total_params/1e6)+'Trainable Params: %6.3f[M]' % (trainable_params/1e6)+ \
-        '\nTotal FLOPS: %6.3f[G]\n' % (t_flops/1e3)+'Total MACCs: %6.3f[G]' % (t_macc/1e9)
+
+        print_str += 'Total Params: %6.3f[M]\n' % (total_params/1e6)+'Trainable Params: %6.3f[M]' % (trainable_params/1e6)+ \
+        '\nTotal FLOPS: %6.3f[G]\n' % (t_flops/1e9)+'Total MACCs: %6.3f[G]' % (t_macc/1e9)
+        return print_str
