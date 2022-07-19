@@ -8,14 +8,14 @@ Mixed precision training could reduce training time by 60% retaining mAP perform
 ## Performance
 All models are trained at coco 2017 train 118k and evaluated at coco 2017 val 5k
 
-Model | Lr schedule  | max learning rate | BatchSize | warmup epochs | total epochs | kernel regulaization | optimizer | Loss | Input Size | Params | Precision | mAP 0.5:0.95@0.05 |
-| ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
-MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320| 1.7M | FP16 | 15.2 |
-MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 4 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320| 1.7M | FP16 | 15.5 |
-MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320| 3.2M | FP16 | 21.1 |
-MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320| 3.2M | FP16 | 21.4 |
-MobileDetCPU SSDLite | CosineDecay with warmup | 2e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320| 4.1M | FP16 | 22.5 |
-MobileDetCPU SSDLite | CosineDecay with warmup | 2e-1 | 128 | 4 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320| 4.1M | FP16 | 22.7 |
+Model | Lr schedule  | max learning rate | BatchSize | total epochs | kernel regulaization | optimizer | Loss | Input Size | Params | Training Precision | mAP 0.5:0.95@0.05 |
+| ------------------------------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
+MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320x320| 1.7M | FP16 | 15.2 |
+MobileNetV3Small SSDLite | CosineDecay with warmup | 2e-1 | 256 | 600 | 1e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320x320| 1.7M | FP16 | 15.5 |
+MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320x320| 3.2M | FP16 | 21.1 |
+MobileNetV3Large SSDLite | CosineDecay with warmup | 1e-1 | 128 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320x320| 3.2M | FP16 | 21.4 |
+MobileDetCPU SSDLite | CosineDecay with warmup | 2e-1 | 128 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, SmoothL1 |320x320| 4.1M | FP16 | 22.5 |
+MobileDetCPU SSDLite | CosineDecay with warmup | 2e-1 | 128 | 600 | 2e-5 | Gradient Centralization SGDM | Focal, BalanceL1 |320x320| 4.1M | FP16 | 22.7 |
 
 ## Update
 1. [22/06/14] Update: Quality Focal Loss and mixed precision training
