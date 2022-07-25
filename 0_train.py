@@ -1,5 +1,8 @@
-import tensorflow as tf
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+
+import tensorflow as tf
 import json
 import tensorboard
 
@@ -11,9 +14,6 @@ from utils_train.customCallback import CallbackBuilder
 from utils_train.customOptimizer import GCSGD
 from utils_train.Datagenerator import Dataset_COCO, Dataset_Pascal, Dataset_COCO_Temp
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 
 flags.DEFINE_boolean(
     name='fp16',
@@ -36,6 +36,7 @@ def main(_argv):
     tf.config.optimizer.set_jit("autoclustering")
     tf.random.set_seed(22)
     logging.set_verbosity(logging.WARNING)
+    strategy = tf.distribute.MirroredStrategy()
 
     logging.warning('Training model: {}'.format(FLAGS.model))
     if FLAGS.model == 'MobileNetV3':
@@ -68,11 +69,12 @@ def main(_argv):
 
     ######################################### Compile
     config['modelName'] = modelName
-    model = ModelBuilder(config = config)
-    #model.load_weights("logs/_epoch373_mAP0.201").expect_partial()
+    with strategy.scope():
+        model = ModelBuilder(config = config)
+        #model.load_weights("logs/_epoch373_mAP0.201").expect_partial()
+        model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
+        print(model)
 
-    print(model)
-    model.compile(loss=MultiBoxLoss(config), optimizer=optimizer, weighted_metrics=[])
     model.fit(train_dataset.dataset,
             epochs=config["training_config"]["epochs"],
             #steps_per_epoch = len(train_dataset),

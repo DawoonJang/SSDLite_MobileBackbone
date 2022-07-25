@@ -9,12 +9,13 @@ from utils_train.Encoder import AnchorBox
 from utils_train.utils import convert_to_corners
 
 _policy=tf.keras.mixed_precision.global_policy()
+strategy = tf.distribute.get_strategy()
 
 def get_scaled_losses(loss, regularization_losses=None):
     loss = tf.reduce_mean(loss)
     if regularization_losses:
         loss += tf.math.add_n(regularization_losses)
-    return loss
+    return loss/strategy.num_replicas_in_sync
 
 class DecodePredictions(tf.keras.layers.Layer):
     def __init__(self, config, **kwargs):
@@ -147,64 +148,73 @@ class ModelBuilder(tf.keras.Model):
         predictions=self(images, training=False)
         return self._decode_predictions(predictions)
 
-    def __repr__(self, table=False):
+    def __repr__(self, table=True):
         print_str=''
         if table:
-            print_str += '%25s | %16s | %20s | %10s | %16s | %6s | %6s\n' % (
-                'Layer Name', 'Input Shape', 'Output Shape', 'Kernel Size', 'Filters', 'Strides', 'FLOPS')
-            print_str += '-' * 170
-            print_str += '\n'
+            print_str += '%25s | %16s | %20s | %10s | %10s | %6s | %6s\n'%( 'Layer Name', 'Input Shape', 'Output Shape', 'Kernel Size', 'Filters', 'Strides', 'FLOPs')
+            print_str += '-'*170+'\n'
         t_flops = 0
-        t_macc = 0
 
         for l in self.layers:
-            o_shape, i_shape, strides, ks, filters = ['', '', ''], ['', '', ''], [1, 1], [0, 0], [0, 0]
+            _layername = str(l).lower()
+            o_shape, i_shape, strides, ks, filters = ['', '', ''], ['', '', ''], '', '', ''
             flops = 0
-            macc = 0
             name = l.name
 
-            if ('InputLayer' in str(l)):
-                i_shape = l.input.get_shape()[1:4].as_list()
-                o_shape = i_shape
+            if 'inputlayer' in _layername:
+                continue
 
-            if ('Reshape' in str(l)):
-                i_shape = l.input.get_shape()[1:4].as_list()
-                o_shape = l.output.get_shape()[1:4].as_list()
-
-            if ('Add' in str(l) or 'Maximum' in str(l) or 'Concatenate' in str(l)):
-                i_shape = l.input[0].get_shape()[1:4].as_list() + [len(l.input)]
-                o_shape = l.output.get_shape()[1:4].as_list()
-                flops = (len(l.input) - 1) * i_shape[0] * i_shape[1] * i_shape[2]
-
-            if ('Average' in str(l) and 'pool' not in str(l)):
-                i_shape = l.input[0].get_shape()[1:4].as_list() + [len(l.input)]
-                o_shape = l.output.get_shape()[1:4].as_list()
-                flops = len(l.input) * i_shape[0] * i_shape[1] * i_shape[2]
-
-            if ('BatchNormalization' in str(l)):
+            elif 'reshape' in _layername:
                 i_shape = l.input.get_shape()[1:4].as_list()
                 o_shape = l.output.get_shape()[1:4].as_list()
 
-                bflops = 1
-                for i in range(len(i_shape)):
-                    bflops *= i_shape[i]
-                flops = bflops
+            elif 'add' in _layername or 'multiply' in _layername or 'maximum' in _layername or 'concatenate' in _layername:
+                i_shape = l.input[0].get_shape()[1:].as_list() + [2] #[len(l.input)]
+                o_shape = l.output.get_shape()[1:].as_list()
+                flops = (len(l.input) - 1)*i_shape[0]*i_shape[1]*i_shape[2]
 
-            if ('ReLU6' in str(l) or 'HSwish' in str(l)):
-                i_shape = l.input.get_shape()[1:4].as_list()
+            elif 'average' in _layername and 'pool' not in _layername:
+                i_shape = l.input[0].get_shape()[1:4].as_list() + [2]
                 o_shape = l.output.get_shape()[1:4].as_list()
-                bflops = 1
-                for i in range(len(i_shape)):
-                    bflops *= i_shape[i]
-                flops = bflops
+                flops = len(l.input)*i_shape[0]*i_shape[1]*i_shape[2]
 
-            if ('pool' in str(l) and ('Global' not in str(l))):
-                i_shape = l.input.get_shape()[1:4].as_list()
+            elif 'pool' in _layername and 'global' not in _layername:
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
                 strides = l.strides
                 ks = l.pool_size
-                flops = ((i_shape[0] / strides[0]) * (i_shape[1] / strides[1]) * (ks[0] * ks[1] * i_shape[2]))
+                flops = (o_shape[3]*o_shape[0]*o_shape[1])*(ks[0]*ks[1])
 
-            if ('Flatten' in str(l)):
+            elif 'global' in _layername:
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
+                flops = (i_shape[0])*(i_shape[1])*(i_shape[2])
+
+            elif 'batchnormalization' in _layername:
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
+
+                flops = 1
+                for i in range(len(i_shape)):
+                    flops *= i_shape[i]
+
+            elif 'relu' in _layername:
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
+                
+                flops = 1
+                for i in range(len(i_shape)):
+                    flops *= i_shape[i]
+
+            elif 'hswish' in _layername or  'sigmoid' in _layername:
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
+                
+                flops = 4
+                for i in range(len(i_shape)):
+                    flops *= i_shape[i]
+
+            elif 'flatten' in _layername:
                 i_shape = l.input.shape[1:4].as_list()
                 flops = 1
                 out_vec = 1
@@ -214,63 +224,39 @@ class ModelBuilder(tf.keras.Model):
                 o_shape = flops
                 flops = 0
 
-            if ('Dense' in str(l)):
+            elif 'padding' in _layername:
+                flops = 0
+
+            elif 'dense' in _layername:
                 i_shape = l.input.shape[1:4].as_list()[0]
                 if (i_shape == None):
                     i_shape = out_vec
 
                 o_shape = l.output.shape[1:4].as_list()
-                flops = 2 * (o_shape[0] * i_shape)
-                macc = flops / 2
-
-            if ('Padding' in str(l)):
-                flops = 0
-
-            if (('Global' in str(l))):
-                i_shape = l.input.get_shape()[1:4].as_list()
-                flops = ((i_shape[0]) * (i_shape[1]) * (i_shape[2]))
-                o_shape = [l.output.get_shape()[1:4].as_list(), 1, 1]
-                out_vec = o_shape
-
-            if ('Conv2D ' in str(l) and 'DepthwiseConv2D' not in str(l) and 'SeparableConv2D' not in str(l)):
+                flops = 2*(o_shape[0]*i_shape)
+            elif 'conv2d ' in _layername:
                 strides = l.strides
                 ks = l.kernel_size
-                filters = l.filters
-                i_shape = l.input.get_shape()[1:4].as_list()
-                o_shape = l.output.get_shape()[1:4].as_list()
+                filters = l.filters if l.filters else 1
+                i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()
 
-                if (filters == None):
-                    filters = i_shape[2]
+                if 'separableconv2d' in _layername:
+                    flops = 2*(filters+ks[0]*ks[1])*(i_shape[2]*(o_shape[0])*(o_shape[1]))
+                else:
+                    flops = 2*(filters*ks[0]*ks[1])*(i_shape[2]*(o_shape[0])*(o_shape[1]))
+            else:
+                print("TP: ", l)
 
-                flops = 2 * ((filters * ks[0] * ks[1] * i_shape[2]) * (
-                        (i_shape[0] / strides[0]) * (i_shape[1] / strides[1])))
-                macc = flops / 2
-
-            if ('Conv2D ' in str(l) and 'DepthwiseConv2D' in str(l) and 'SeparableConv2D' not in str(l)):
-                strides = l.strides
-                ks = l.kernel_size
-                filters = l.filters
-                i_shape = l.input.get_shape()[1:4].as_list()
-                o_shape = l.output.get_shape()[1:4].as_list()
-
-                if (filters == None):
-                    filters = i_shape[2]
-
-                flops = 2 * (
-                        (ks[0] * ks[1] * i_shape[2]) * ((i_shape[0] / strides[0]) * (i_shape[1] / strides[1]))) 
-                macc = flops / 2
-
-            t_macc += macc
             t_flops += flops
-
             if table:
-                print_str += '%25s | %16s | %20s | %10s | %16s | %6s | %5.2f[M]\n' % (
-                    name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
+                print_str += '%25s | %16s | %20s | %10s | %10s | %6s | %5.2f[M]\n'%(name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
 
         trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.trainable_weights])
         none_trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.non_trainable_weights])
         total_params = trainable_params+none_trainable_params
 
-        print_str += 'Total Params: %6.3f[M]\n' % (total_params/1e6)+'Trainable Params: %6.3f[M]' % (trainable_params/1e6)+ \
-        '\nTotal FLOPS: %6.3f[G]\n' % (t_flops/1e9)+'Total MACCs: %6.3f[G]' % (t_macc/1e9)
+        print_str += '-'*170+'\n'
+        print_str += '         Total Params: %6.3f[M]  ' % (total_params/1e6)+'Trainable Params: %6.3f[M]  ' % (trainable_params/1e6)+ \
+        'Total FLOPS: %6.3f[G]  ' % (t_flops/1e9)
         return print_str
