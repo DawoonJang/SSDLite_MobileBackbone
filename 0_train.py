@@ -27,7 +27,7 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     name='model',
-    default='MobileNetV3',
+    default='MobileNetV3_PFH_SSD',
     help='Model to train')
 
 FLAGS = flags.FLAGS
@@ -39,10 +39,7 @@ def main(_argv):
     strategy = tf.distribute.MirroredStrategy()
 
     logging.warning('Training model: {}'.format(FLAGS.model))
-    if FLAGS.model == 'MobileNetV3':
-        modelName = "MobileNetV3_PFH_SSD"
-    elif FLAGS.model == 'MobileDet':
-        modelName = "MobileDet_PFH_SSD"
+    modelName = FLAGS.model
     
     with open(os.path.join("model/0_Config", modelName+".json"), "r") as config_file:
         config = json.load(config_file)

@@ -169,13 +169,16 @@ class ModelBuilder(tf.keras.Model):
                 o_shape = l.output.get_shape()[1:4].as_list()
 
             elif 'add' in _layername or 'multiply' in _layername or 'maximum' in _layername or 'concatenate' in _layername:
-                i_shape = l.input[0].get_shape()[1:].as_list() + [2] #[len(l.input)]
-                o_shape = l.output.get_shape()[1:].as_list()
-                flops = (len(l.input) - 1)*i_shape[0]*i_shape[1]*i_shape[2]
+                i_shape = [l_input.get_shape()[1:].as_list() for l_input in l.input]
+                #i_shape = l.input.get_shape()[1:].as_list()
+                o_shape = l.output.get_shape()[1:].as_list()                
+                flops = (len(i_shape) - 1)
+                for i in i_shape[0]:
+                    flops *= i
 
             elif 'average' in _layername and 'pool' not in _layername:
-                i_shape = l.input[0].get_shape()[1:4].as_list() + [2]
-                o_shape = l.output.get_shape()[1:4].as_list()
+                i_shape = l.input[0].get_shape()[1:].as_list() + [2]
+                o_shape = l.output.get_shape()[1:].as_list()
                 flops = len(l.input)*i_shape[0]*i_shape[1]*i_shape[2]
 
             elif 'pool' in _layername and 'global' not in _layername:
@@ -250,7 +253,12 @@ class ModelBuilder(tf.keras.Model):
 
             t_flops += flops
             if table:
-                print_str += '%25s | %16s | %20s | %10s | %10s | %6s | %5.2f[M]\n'%(name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
+                if isinstance(i_shape[0], list):
+                    print_str += '%25s | %16s | %20s | %10s | %10s | %6s | %5.2f[M]\n'%(name, str(i_shape[0]), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
+                    for idx in range(len(i_shape)-1):
+                        print_str += '%44s | \n'%(str(i_shape[idx+1]))
+                else:
+                    print_str += '%25s | %16s | %20s | %10s | %10s | %6s | %5.2f[M]\n'%(name, str(i_shape), str(o_shape), str(ks), str(filters), str(strides), flops/1e6)
 
         trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.trainable_weights])
         none_trainable_params = sum([np.prod(w.get_shape().as_list()) for w in self.non_trainable_weights])
